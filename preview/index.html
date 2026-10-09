@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elle's Journey — Design Preview</title>
+  <style>
+    :root { --ink:#25304a; --muted:#71809a; --cream:#f7f5ef; --card:#fff; --purple:#7057c7; --lav:#ebe6ff; --mint:#dff4e7; --green:#31855b; --peach:#ffe8d4; --rose:#f7dfe7; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); font:15px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:linear-gradient(135deg,#eee9ff,#f9f5ec); }
+    .page { min-height:100vh; padding:28px; }
+    .heading { max-width:1180px; margin:0 auto 22px; display:flex; align-items:end; justify-content:space-between; }
+    h1 { font-size:26px; margin:0 0 4px; } .heading p { margin:0; color:var(--muted); }
+    .badge { background:#fff; border-radius:99px; padding:9px 14px; font-weight:700; color:var(--purple); box-shadow:0 4px 20px #4c3b8a1c; }
+    .phones { display:flex; gap:30px; max-width:1180px; margin:auto; justify-content:center; flex-wrap:wrap; }
+    .phone { width:360px; height:760px; border-radius:38px; border:10px solid #202334; overflow:hidden; background:var(--cream); box-shadow:0 24px 50px #30276530; position:relative; }
+    .status { height:28px; display:flex; justify-content:space-between; align-items:center; padding:7px 20px 0; font-size:11px; font-weight:700; }
+    .content { padding:16px 20px 90px; height:calc(100% - 28px); overflow:hidden; }
+    .hello { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .hello h2 { margin:0; font-size:24px; } .hello p { margin:3px 0 0; color:var(--muted); }
+    .avatar { width:46px; height:46px; border-radius:17px; background:var(--lav); display:grid; place-items:center; font-size:23px; }
+    .progress { background:var(--purple); color:#fff; border-radius:22px; padding:18px; box-shadow:0 8px 22px #7057c73a; }
+    .progress-top { display:flex; justify-content:space-between; } .progress strong { font-size:18px; }
+    .bar { margin:14px 0 8px; background:#ffffff45; height:8px; border-radius:9px; overflow:hidden; } .bar i { display:block; width:31%; height:100%; background:white; border-radius:9px; }
+    .small { font-size:12px; opacity:.85; }
+    .card { background:var(--card); border-radius:20px; padding:17px; margin-top:14px; box-shadow:0 6px 22px #4f567014; }
+    .card h3 { margin:0 0 4px; font-size:17px; } .card p { color:var(--muted); margin:0; font-size:13px; }
+    .primary { width:100%; border:0; border-radius:16px; padding:15px; margin-top:15px; background:var(--purple); color:#fff; font-weight:750; font-size:15px; }
+    .row { display:flex; gap:10px; margin-top:12px; }
+    .mini { flex:1; border-radius:16px; padding:13px; background:var(--mint); color:var(--green); font-weight:700; text-align:center; }
+    .mini.peach { background:var(--peach); color:#a65e24; }
+    .section { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:800; margin:20px 2px 9px; }
+    .scale { display:flex; justify-content:space-between; margin-top:12px; }
+    .face { width:48px; height:48px; border-radius:16px; background:#f2f1f6; display:grid; place-items:center; font-size:23px; }
+    .face.on { background:var(--lav); outline:2px solid var(--purple); }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .chip { padding:9px 11px; border-radius:99px; background:#f2f1f6; font-size:12px; font-weight:700; }
+    .chip.on { background:var(--rose); color:#984762; }
+    textarea { border:0; resize:none; width:100%; height:66px; background:#f5f4f0; border-radius:13px; padding:12px; margin-top:10px; font:inherit; }
+    .report { display:flex; align-items:center; gap:12px; border:1px solid #e9e5df; border-radius:17px; padding:14px; margin-top:11px; }
+    .report-icon { min-width:45px; height:45px; border-radius:14px; display:grid; place-items:center; background:var(--lav); font-size:21px; }
+    .report-info { flex:1; } .report-info strong { display:block; } .report-info span { color:var(--muted); font-size:12px; }
+    .ready { color:var(--green); font-weight:800; font-size:12px; }
+    .locked { color:var(--muted); font-size:18px; }
+    .privacy { background:var(--mint); color:#286d4c; border-radius:15px; padding:12px; margin-top:14px; font-size:12px; font-weight:650; }
+    nav { position:absolute; bottom:0; left:0; right:0; height:76px; background:#fff; display:flex; justify-content:space-around; align-items:center; border-top:1px solid #ece9e2; }
+    nav div { text-align:center; color:#8b93a4; font-size:11px; font-weight:700; } nav b { display:block; font-size:21px; margin-bottom:3px; } nav .active { color:var(--purple); }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="heading"><div><h1>Elle’s Journey</h1><p>Private, gentle tracking for a 12-week leucovorin trial</p></div><div class="badge">Design preview</div></div>
+    <div class="phones">
+      <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+        <div class="hello"><div><h2>Hi, Elle’s family</h2><p>Tuesday, October 8</p></div><div class="avatar">🌱</div></div>
+        <div class="progress"><div class="progress-top"><strong>Week 4 of 12</strong><span>31%</span></div><div class="bar"><i></i></div><div class="small">24 daily check-ins completed</div></div>
+        <div class="card"><h3>Today’s check-in</h3><p>About one minute • You can edit it later</p><button class="primary">＋ Log today</button><div class="row"><div class="mini">✓ Dose taken</div><div class="mini peach">☾ Sleep 8h</div></div></div>
+        <div class="section">Coming up</div><div class="card"><h3>Week 6 doctor report</h3><p>Ready in 16 days. Includes trends, notes, dose history, and side effects.</p></div>
+        <div class="privacy">🔒 Everything stays on this phone unless you choose to share a report.</div>
+      </div><nav><div class="active"><b>⌂</b>Today</div><div><b>▥</b>History</div><div><b>▥</b>Reports</div><div><b>⚙</b>Settings</div></nav></section>
+      <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+        <div class="hello"><div><h2>Daily check-in</h2><p>Tuesday • Week 4, day 3</p></div><div class="avatar">✓</div></div>
+        <div class="card"><h3>How was communication?</h3><p>Compared with Elle’s usual baseline</p><div class="scale"><div class="face">−−</div><div class="face">−</div><div class="face">•</div><div class="face on">＋</div><div class="face">＋＋</div></div></div>
+        <div class="card"><h3>Overall mood</h3><div class="scale"><div class="face">😣</div><div class="face">🙁</div><div class="face">😐</div><div class="face on">🙂</div><div class="face">😊</div></div></div>
+        <div class="card"><h3>Anything noticed today?</h3><div class="chips"><span class="chip">Sleep change</span><span class="chip on">Tummy upset</span><span class="chip">Headache</span><span class="chip">Irritability</span><span class="chip">Other</span></div><textarea placeholder="Optional note for her doctor…"></textarea></div>
+        <button class="primary">Save check-in</button>
+      </div><nav><div class="active"><b>⌂</b>Today</div><div><b>▥</b>History</div><div><b>▥</b>Reports</div><div><b>⚙</b>Settings</div></nav></section>
+      <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+        <div class="hello"><div><h2>Doctor reports</h2><p>Clear summaries to share at visits</p></div><div class="avatar">▥</div></div>
+        <div class="card"><h3>At a glance</h3><p>Communication and engagement are trending slightly above baseline. Sleep is steady. Tummy upset was noted on 3 days.</p><div class="row"><div class="mini">↗ Communication</div><div class="mini peach">3 side-effect days</div></div></div>
+        <div class="section">Milestone reports</div>
+        <div class="report"><div class="report-icon">6</div><div class="report-info"><strong>Week 6 report</strong><span>Daily ratings, medication and notes</span></div><span class="ready">PDF</span></div>
+        <div class="report"><div class="report-icon">12</div><div class="report-info"><strong>Week 12 report</strong><span>Full trial summary</span></div><span class="locked">◷</span></div>
+        <div class="section">What’s included</div><div class="card"><p>✓ Medication and dose history</p><p>✓ Communication, engagement, focus and mood trends</p><p>✓ Sleep, appetite and side-effect log</p><p>✓ Every caregiver note</p></div>
+        <button class="primary">Share week 6 PDF</button>
+        <div class="privacy">This tracker records observations only. Medication decisions should be made with Elle’s prescriber.</div>
+      </div><nav><div><b>⌂</b>Today</div><div><b>▥</b>History</div><div class="active"><b>▥</b>Reports</div><div><b>⚙</b>Settings</div></nav></section>
+    </div>
+  </main>
+</body>
+</html>
