@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 final class TrackerStore {
@@ -145,7 +146,7 @@ final class TrackerStore {
     String exportJson() {
         JSONObject root = new JSONObject();
         try {
-            root.put("format", "elles-journey-backup-v2");
+            root.put("format", "elles-journey-backup-v3");
             root.put("profile", new JSONObject(preferences.getString(PROFILE, "{}")));
             root.put("entries", new JSONArray(preferences.getString(ENTRIES, "[]")));
             root.put("careUpdates", new JSONArray(preferences.getString(CARE_UPDATES, "[]")));
@@ -159,7 +160,9 @@ final class TrackerStore {
         try {
             JSONObject root = new JSONObject(raw);
             String format = root.optString("format");
-            if (!"elles-journey-backup-v1".equals(format) && !"elles-journey-backup-v2".equals(format)) return false;
+            if (!"elles-journey-backup-v1".equals(format)
+                    && !"elles-journey-backup-v2".equals(format)
+                    && !"elles-journey-backup-v3".equals(format)) return false;
 
             List<DailyEntry> dailyEntries = getEntries();
             JSONArray importedEntries = root.optJSONArray("entries");
@@ -302,6 +305,18 @@ final class TrackerStore {
         boolean schoolTuesday = true;
         boolean theraplayWednesday = true;
         int weeklySampleDay = 2;
+        int weeklyBackupDay = 3;
+        String schoolName = "";
+        String teacherName = "";
+        String className = "";
+        String schoolUpdateMethod = "In person at pickup";
+        String therapyClinic = "Theraplay";
+        String speechTherapist = "";
+        String otTherapist = "";
+        String therapyUpdateMethod = "In person after session";
+        boolean awayWeekendsEnabled = true;
+        String awayWeekendAnchor = nextFriday(LocalDate.now()).toString();
+        String awayWeekendLabel = "Away with grandmother";
         long updatedAt;
 
         void read(JSONObject json) {
@@ -318,6 +333,18 @@ final class TrackerStore {
             schoolTuesday = json.optBoolean("schoolTuesday", schoolTuesday);
             theraplayWednesday = json.optBoolean("theraplayWednesday", theraplayWednesday);
             weeklySampleDay = json.optInt("weeklySampleDay", weeklySampleDay);
+            weeklyBackupDay = json.optInt("weeklyBackupDay", weeklyBackupDay);
+            schoolName = json.optString("schoolName", schoolName);
+            teacherName = json.optString("teacherName", teacherName);
+            className = json.optString("className", className);
+            schoolUpdateMethod = json.optString("schoolUpdateMethod", schoolUpdateMethod);
+            therapyClinic = json.optString("therapyClinic", therapyClinic);
+            speechTherapist = json.optString("speechTherapist", speechTherapist);
+            otTherapist = json.optString("otTherapist", otTherapist);
+            therapyUpdateMethod = json.optString("therapyUpdateMethod", therapyUpdateMethod);
+            awayWeekendsEnabled = json.optBoolean("awayWeekendsEnabled", awayWeekendsEnabled);
+            awayWeekendAnchor = json.optString("awayWeekendAnchor", awayWeekendAnchor);
+            awayWeekendLabel = json.optString("awayWeekendLabel", awayWeekendLabel);
             updatedAt = json.optLong("updatedAt", 0);
         }
 
@@ -337,10 +364,40 @@ final class TrackerStore {
                 json.put("schoolTuesday", schoolTuesday);
                 json.put("theraplayWednesday", theraplayWednesday);
                 json.put("weeklySampleDay", weeklySampleDay);
+                json.put("weeklyBackupDay", weeklyBackupDay);
+                json.put("schoolName", schoolName);
+                json.put("teacherName", teacherName);
+                json.put("className", className);
+                json.put("schoolUpdateMethod", schoolUpdateMethod);
+                json.put("therapyClinic", therapyClinic);
+                json.put("speechTherapist", speechTherapist);
+                json.put("otTherapist", otTherapist);
+                json.put("therapyUpdateMethod", therapyUpdateMethod);
+                json.put("awayWeekendsEnabled", awayWeekendsEnabled);
+                json.put("awayWeekendAnchor", awayWeekendAnchor);
+                json.put("awayWeekendLabel", awayWeekendLabel);
                 json.put("updatedAt", updatedAt);
             } catch (JSONException ignored) {
             }
             return json;
+        }
+
+        boolean isScheduledAway(LocalDate date) {
+            if (!awayWeekendsEnabled) return false;
+            try {
+                LocalDate anchor = LocalDate.parse(awayWeekendAnchor);
+                long offset = ChronoUnit.DAYS.between(anchor, date);
+                long cycleDay = Math.floorMod(offset, 14);
+                return cycleDay >= 0 && cycleDay <= 2;
+            } catch (Exception ignored) {
+                return false;
+            }
+        }
+
+        private static LocalDate nextFriday(LocalDate date) {
+            LocalDate candidate = date;
+            while (candidate.getDayOfWeek().getValue() != 5) candidate = candidate.plusDays(1);
+            return candidate;
         }
     }
 
@@ -354,6 +411,10 @@ final class TrackerStore {
         String eveningDose = "";
         String morningDoseTime = "";
         String eveningDoseTime = "";
+        String doseConfirmation = "Observed by us";
+        String observationStatus = "Observed enough to rate";
+        boolean hasRatings = true;
+        boolean healthObserved = true;
         int communication = 3;
         int tellsAboutDay = -1;
         int engagement = 3;
@@ -373,6 +434,9 @@ final class TrackerStore {
         String note = "";
         String momentContext = "";
         String exactWords = "";
+        String communicationMode = "Spoken words";
+        String caregiverMeaning = "";
+        boolean eventConfirmed;
         String promptsUsed = "";
         String observer = "";
         String factors = "";
@@ -390,6 +454,10 @@ final class TrackerStore {
                 json.put("eveningDose", eveningDose);
                 json.put("morningDoseTime", morningDoseTime);
                 json.put("eveningDoseTime", eveningDoseTime);
+                json.put("doseConfirmation", doseConfirmation);
+                json.put("observationStatus", observationStatus);
+                json.put("hasRatings", hasRatings);
+                json.put("healthObserved", healthObserved);
                 json.put("communication", communication);
                 json.put("tellsAboutDay", tellsAboutDay);
                 json.put("engagement", engagement);
@@ -409,6 +477,9 @@ final class TrackerStore {
                 json.put("note", note);
                 json.put("momentContext", momentContext);
                 json.put("exactWords", exactWords);
+                json.put("communicationMode", communicationMode);
+                json.put("caregiverMeaning", caregiverMeaning);
+                json.put("eventConfirmed", eventConfirmed);
                 json.put("promptsUsed", promptsUsed);
                 json.put("observer", observer);
                 json.put("factors", factors);
@@ -430,6 +501,10 @@ final class TrackerStore {
             entry.eveningDose = json.optString("eveningDose", "");
             entry.morningDoseTime = json.optString("morningDoseTime", "");
             entry.eveningDoseTime = json.optString("eveningDoseTime", "");
+            entry.doseConfirmation = json.optString("doseConfirmation", "Observed by us");
+            entry.observationStatus = json.optString("observationStatus", "Observed enough to rate");
+            entry.hasRatings = json.optBoolean("hasRatings", true);
+            entry.healthObserved = json.optBoolean("healthObserved", true);
             entry.communication = json.optInt("communication", 3);
             entry.tellsAboutDay = json.optInt("tellsAboutDay", -1);
             entry.engagement = json.optInt("engagement", 3);
@@ -449,6 +524,9 @@ final class TrackerStore {
             entry.note = json.optString("note", "");
             entry.momentContext = json.optString("momentContext", "");
             entry.exactWords = json.optString("exactWords", "");
+            entry.communicationMode = json.optString("communicationMode", "Spoken words");
+            entry.caregiverMeaning = json.optString("caregiverMeaning", "");
+            entry.eventConfirmed = json.optBoolean("eventConfirmed");
             entry.promptsUsed = json.optString("promptsUsed", "");
             entry.observer = json.optString("observer", "");
             entry.factors = json.optString("factors", "");
@@ -473,6 +551,10 @@ final class TrackerStore {
             if (morningDoseTaken) count++;
             if (eveningDoseTaken) count++;
             return count == 0 && doseTaken ? 1 : count;
+        }
+
+        boolean isNotObserved() {
+            return !hasRatings && observationStatus.toLowerCase(Locale.US).contains("away");
         }
     }
 
@@ -577,7 +659,14 @@ final class TrackerStore {
         String note = "";
         boolean videoRecorded;
         String videoFileName = "";
+        String setting = "After school";
+        String interruptionReason = "";
+        final List<PromptResponse> promptResponses = new ArrayList<>();
         long updatedAt;
+
+        WeeklySample() {
+            ensurePromptResponses();
+        }
 
         JSONObject toJson() {
             JSONObject json = new JSONObject();
@@ -599,6 +688,11 @@ final class TrackerStore {
                 json.put("note", note);
                 json.put("videoRecorded", videoRecorded);
                 json.put("videoFileName", videoFileName);
+                json.put("setting", setting);
+                json.put("interruptionReason", interruptionReason);
+                JSONArray responses = new JSONArray();
+                for (PromptResponse response : promptResponses) responses.put(response.toJson());
+                json.put("promptResponses", responses);
                 json.put("updatedAt", updatedAt);
             } catch (JSONException ignored) {
             }
@@ -624,13 +718,119 @@ final class TrackerStore {
             sample.note = json.optString("note", "");
             sample.videoRecorded = json.optBoolean("videoRecorded");
             sample.videoFileName = json.optString("videoFileName", "");
+            sample.setting = json.optString("setting", "After school");
+            sample.interruptionReason = json.optString("interruptionReason", "");
+            JSONArray responses = json.optJSONArray("promptResponses");
+            if (responses != null) {
+                sample.promptResponses.clear();
+                for (int index = 0; index < responses.length(); index++) {
+                    sample.promptResponses.add(PromptResponse.fromJson(responses.optJSONObject(index), index + 1));
+                }
+            }
+            sample.ensurePromptResponses();
             sample.updatedAt = json.optLong("updatedAt", 0);
             return sample;
         }
 
         float ratingAverage() {
+            if (hasPromptData()) return promptScoreAverage();
             return (startsCommunication + backAndForth + smallTalk + tellsAboutDay
                     + openQuestions + followUpQuestions) / 6f;
+        }
+
+        void ensurePromptResponses() {
+            while (promptResponses.size() < 5) promptResponses.add(new PromptResponse(promptResponses.size() + 1));
+            while (promptResponses.size() > 5) promptResponses.remove(promptResponses.size() - 1);
+        }
+
+        boolean hasPromptData() {
+            for (PromptResponse response : promptResponses) if (response.recorded) return true;
+            return false;
+        }
+
+        float promptScoreAverage() {
+            int total = 0;
+            int count = 0;
+            for (PromptResponse response : promptResponses) {
+                if (!response.recorded) continue;
+                total += response.score();
+                count++;
+            }
+            return count == 0 ? 0 : total / (float) count;
+        }
+
+        int recordedPromptCount() {
+            int count = 0;
+            for (PromptResponse response : promptResponses) if (response.recorded) count++;
+            return count;
+        }
+
+        int totalPromptDetails() {
+            int total = 0;
+            for (PromptResponse response : promptResponses) if (response.recorded) total += response.detailCount();
+            return total;
+        }
+    }
+
+    static final class PromptResponse {
+        int promptNumber;
+        boolean recorded;
+        int responseType;
+        int supportLevel;
+        String communicationMode = "Spoken words";
+        String exactWords = "";
+        String caregiverMeaning = "";
+        boolean eventConfirmed;
+
+        PromptResponse(int promptNumber) {
+            this.promptNumber = promptNumber;
+        }
+
+        int score() {
+            int[] baseScores = {0, 2, 3, 4, 5};
+            int score = baseScores[Math.max(0, Math.min(baseScores.length - 1, responseType))];
+            if (supportLevel == 1) score = Math.min(score, 4);
+            else if (supportLevel == 2) score = Math.min(score, 3);
+            else if (supportLevel == 3) score = Math.min(score, 2);
+            else if (supportLevel >= 4) score = Math.min(score, 1);
+            return score;
+        }
+
+        int detailCount() {
+            if (responseType <= 1) return 0;
+            if (responseType == 2) return 1;
+            if (responseType == 3) return 2;
+            return 3;
+        }
+
+        JSONObject toJson() {
+            JSONObject json = new JSONObject();
+            try {
+                json.put("promptNumber", promptNumber);
+                json.put("recorded", recorded);
+                json.put("responseType", responseType);
+                json.put("supportLevel", supportLevel);
+                json.put("communicationMode", communicationMode);
+                json.put("exactWords", exactWords);
+                json.put("caregiverMeaning", caregiverMeaning);
+                json.put("eventConfirmed", eventConfirmed);
+            } catch (JSONException ignored) {
+            }
+            return json;
+        }
+
+        static PromptResponse fromJson(JSONObject json, int fallbackNumber) {
+            PromptResponse response = new PromptResponse(fallbackNumber);
+            if (json == null) return response;
+            response.promptNumber = json.optInt("promptNumber", fallbackNumber);
+            response.recorded = json.optBoolean("recorded");
+            response.responseType = json.optInt("responseType", 0);
+            response.supportLevel = json.optInt("supportLevel", 0);
+            response.communicationMode = json.optString("communicationMode", "Spoken words");
+            response.exactWords = json.optString("exactWords", "");
+            response.caregiverMeaning = json.optString("caregiverMeaning", "");
+            response.eventConfirmed = json.optBoolean("eventConfirmed");
+            return response;
         }
     }
 }

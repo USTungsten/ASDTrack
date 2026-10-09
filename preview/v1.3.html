@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Elle's Journey v1.3.1 Interactive Preview</title>
+  <title>Elle's Journey v1.4 Interactive Preview</title>
   <style>
     :root { --ink:#17223b; --muted:#71809a; --canvas:#f4f6f9; --card:#fff; --violet:#6557c9; --violet2:#897be4; --lav:#eeebff; --mint:#e1f5ec; --green:#267759; --amber:#fff0d8; --amberink:#98611c; --line:#e8ebf1; --rose:#fff0f2; --roseink:#984762; --blue:#e7f2ff; --blueink:#356a9c; }
     * { box-sizing:border-box; }
@@ -23,12 +23,15 @@
     .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
     .eyebrow { font-size:10px; color:var(--violet); text-transform:uppercase; letter-spacing:.1em; font-weight:850; margin-bottom:3px; }
     h2 { margin:0; font-size:24px; letter-spacing:-.035em; } .sub { margin:3px 0 0; color:var(--muted); font-size:12px; }
-    .avatar { width:44px; height:44px; border-radius:15px; background:var(--lav); display:grid; place-items:center; font-size:20px; box-shadow:inset 0 0 0 1px #dfd9ff; font-weight:850; color:var(--violet); }
+    .avatar { width:54px; height:54px; border-radius:18px; background:linear-gradient(145deg,#fff,var(--lav)); display:grid; place-items:center; font-size:20px; box-shadow:inset 0 0 0 1px #dfd9ff,0 6px 16px #6557c91a; font-weight:850; color:var(--violet); overflow:hidden; }
+    .avatar img { width:48px; height:48px; object-fit:contain; }
     .hero { border-radius:22px; padding:16px; color:#fff; background:linear-gradient(140deg,var(--violet),var(--violet2)); box-shadow:0 10px 25px #6557c93a; }
     .hero-line { display:flex; align-items:end; justify-content:space-between; } .hero strong { font-size:18px; } .hero .day { font-size:11px; opacity:.9; }
     .bar { height:7px; margin:12px 0 7px; border-radius:9px; background:#ffffff40; overflow:hidden; }.bar span { display:block; width:31%; height:100%; border-radius:9px; background:#fff; }
     .card { background:#fff; border:1px solid #edf0f5; border-radius:20px; padding:14px; margin-top:11px; box-shadow:0 5px 18px #2d38580d; }
-    .card-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }.icon { width:38px; height:38px; border-radius:12px; display:grid; place-items:center; background:var(--lav); color:var(--violet); font-size:18px; font-weight:850; flex:0 0 auto; }
+    .card-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }.icon { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:var(--lav); color:var(--violet); font-size:18px; font-weight:850; flex:0 0 auto; overflow:hidden; }
+    .icon.art { background:linear-gradient(145deg,#fff,#f2f0ff); box-shadow:inset 0 0 0 1px #e7e2ff; }
+    .icon.art img { width:42px; height:42px; object-fit:contain; }
     .icon.green { background:var(--mint); color:var(--green); }.icon.amber { background:var(--amber); color:var(--amberink); }.icon.blue{background:var(--blue);color:var(--blueink)}
     .card-head .copy { flex:1; }.card-head strong { display:block; font-size:15px; }.card-head span { color:var(--muted); font-size:11px; display:block; }.info { width:26px; height:26px; border-radius:99px; background:#f0f1f5; color:var(--muted); display:grid; place-items:center; font-size:12px; font-weight:900; }
     .action-row { display:flex; align-items:center; gap:10px; }.action-copy{flex:1}.action-copy strong{display:block;font-size:14px}.action-copy span{font-size:11px;color:var(--muted)}.arrow{color:var(--violet);font-size:22px;font-weight:700}
@@ -49,7 +52,26 @@
     .privacy { border-radius:13px; padding:10px; margin-top:9px; background:var(--mint); color:var(--green); font-size:10.5px; font-weight:700; }
     .report-list { margin:0; padding:0; list-style:none; }.report-list li{display:flex;gap:7px;font-size:10.5px;color:var(--muted);padding:4px 0}.report-list b{color:var(--green)}
     .mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.stat{border-radius:13px;padding:9px}.stat b{display:block;font-size:16px}.stat span{font-size:9.5px}
-    nav { position:absolute; left:0; right:0; bottom:0; height:75px; padding:5px; background:#fff; border-top:1px solid var(--line); display:flex; justify-content:space-around; align-items:center; }.nav { flex:1; height:61px; border-radius:15px; display:grid; place-items:center; align-content:center; text-align:center; color:var(--ink); font-size:9px; font-weight:750; cursor:pointer; user-select:none; }.nav b{display:block;font-size:18px;margin-bottom:3px}.nav.on{color:var(--violet);background:var(--lav)}
+    .stepper { display:flex; align-items:center; gap:5px; margin:0 0 11px; padding:7px; border-radius:16px; background:#fff; border:1px solid #edf0f5; }
+    .step { flex:1; border-radius:11px; padding:8px 4px; text-align:center; color:var(--muted); font-size:9px; font-weight:850; }
+    .step b { display:block; width:20px; height:20px; margin:0 auto 3px; border-radius:99px; background:#eef0f5; color:var(--muted); line-height:20px; }
+    .step.on { color:var(--violet); background:var(--lav); }.step.on b{background:var(--violet);color:#fff}.step.done b{background:var(--mint);color:var(--green)}
+    .intro-card { display:flex; gap:12px; align-items:center; border-radius:20px; padding:13px; margin:10px 0; background:linear-gradient(135deg,#f1efff,#f7fbff); border:1px solid #e3ddff; }
+    .intro-card img { width:64px; height:64px; object-fit:contain; flex:0 0 auto; }.intro-card strong{display:block;font-size:15px}.intro-card span{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+    .voice-card { border-radius:22px; padding:14px; margin-top:11px; color:#fff; background:linear-gradient(140deg,#5143b7,#8173df); box-shadow:0 10px 24px #6557c936; }
+    .voice-top { display:flex; align-items:center; gap:11px; }.voice-art{width:62px;height:62px;border-radius:19px;background:#ffffff20;display:grid;place-items:center;flex:0 0 auto}.voice-art img{width:58px;height:58px;object-fit:contain}.voice-copy{flex:1}.voice-copy strong{display:block;font-size:16px}.voice-copy span{display:block;font-size:10.5px;opacity:.86;margin-top:3px}
+    .voice-button { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:11px; padding:12px; border-radius:14px; color:var(--violet); background:#fff; font-size:13px; font-weight:900; box-shadow:0 5px 14px #2d236c24; }.voice-button img{width:26px;height:26px;object-fit:contain}.voice-status{font-size:10px;opacity:.9;text-align:center;margin-top:7px;min-height:14px}.voice-button.listening{background:var(--mint);color:var(--green)}
+    .form-field { margin-top:9px; padding:11px; border-radius:14px; background:#f4f5f9; border:1px solid #eceef3; }.field-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.field-top strong{font-size:11px}.field-value{color:var(--ink);font-size:11px;line-height:1.45;margin-top:5px}.mic-mini{width:28px;height:28px;border-radius:10px;background:var(--lav);display:grid;place-items:center;padding:3px}.mic-mini img{width:23px;height:23px;object-fit:contain}
+    .source-strip{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.source-option{border-radius:13px;padding:9px;background:#f2f4f7;color:var(--muted);font-size:10px;font-weight:850;text-align:center}.source-option.on{background:var(--lav);color:var(--violet);outline:1px solid var(--violet)}
+    .soft-label{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--green);font-weight:850;margin-top:8px}.soft-label img{width:24px;height:24px;object-fit:contain}
+    .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.setup-field{display:block;color:var(--muted);font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.05em}.setup-field.wide{grid-column:1/-1}.setup-input{width:100%;height:43px;margin-top:5px;padding:0 11px;border:1px solid #e8eaf0;border-radius:12px;background:#f4f5f9;color:var(--ink);font:700 11px/1.2 inherit;outline:none}.setup-input:focus{border-color:var(--violet);box-shadow:0 0 0 3px #6557c918}.setup-input::placeholder{color:#9aa3b3}
+    .history-summary{border-radius:22px;padding:14px;color:#fff;background:linear-gradient(140deg,#5547bb,#8577e2);box-shadow:0 10px 24px #6557c92c}.history-summary-top{display:flex;align-items:center;gap:10px}.history-summary-top img{width:54px;height:54px;object-fit:contain}.history-summary-top strong{display:block;font-size:16px}.history-summary-top span{display:block;font-size:10px;opacity:.85}.history-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.history-stat{padding:8px 5px;border-radius:12px;background:#ffffff18;text-align:center}.history-stat b{display:block;font-size:15px}.history-stat span{font-size:8.5px;opacity:.88}
+    .history-search{display:flex;align-items:center;gap:8px;margin-top:11px;padding:9px 11px;border-radius:14px;background:#fff;border:1px solid #eceef3}.history-search img{width:28px;height:28px;object-fit:contain}.history-search input{width:100%;border:0;outline:0;background:transparent;color:var(--ink);font:700 11px/1.2 inherit}.history-search input::placeholder{color:#9aa3b3}
+    .filter-row,.week-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 1px}.filter-row::-webkit-scrollbar,.week-row::-webkit-scrollbar{display:none}.history-filter,.week-chip{border-radius:99px;padding:8px 10px;background:#fff;border:1px solid #e8eaf0;color:var(--muted);font-size:9px;font-weight:850;white-space:nowrap;cursor:pointer}.history-filter.on,.week-chip.on{background:var(--lav);border-color:var(--violet);color:var(--violet)}
+    .history-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:11px 0 7px}.history-controls strong{font-size:11px}.history-sort{border:0;border-radius:10px;background:#eef0f5;color:var(--ink);padding:7px 8px;font:800 9px/1 inherit}
+    .day-group{margin-top:9px;border-radius:18px;background:#fff;border:1px solid #edf0f5;box-shadow:0 4px 14px #2d38580b;overflow:hidden}.day-heading{display:flex;align-items:center;gap:9px;padding:11px;cursor:pointer}.day-date{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--lav);color:var(--violet);font-size:9px;font-weight:850;line-height:1.05;text-align:center}.day-date b{display:block;font-size:15px}.day-title{flex:1}.day-title strong{display:block;font-size:12px}.day-title span{display:block;color:var(--muted);font-size:9.5px;margin-top:2px}.day-toggle{color:var(--violet);font-size:18px;transition:.2s}.day-body{padding:0 11px 5px}.day-group.collapsed .day-body{display:none}.day-group.collapsed .day-toggle{transform:rotate(-90deg)}
+    .history-entry{display:flex;gap:9px;padding:10px 0;border-top:1px solid var(--line)}.history-entry[hidden]{display:none}.entry-art{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#fff,#f1efff);display:grid;place-items:center;flex:0 0 auto}.entry-art img{width:36px;height:36px;object-fit:contain}.entry-copy{flex:1;min-width:0}.entry-copy strong{display:block;font-size:11px}.entry-copy span{display:block;color:var(--muted);font-size:9.5px;margin-top:2px;line-height:1.35}.entry-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.entry-tag{border-radius:99px;padding:4px 6px;background:#f1f3f7;color:var(--muted);font-size:8px;font-weight:850}.entry-tag.good{background:var(--mint);color:var(--green)}.entry-tag.voice{background:var(--lav);color:var(--violet)}.entry-tag.concern{background:var(--rose);color:var(--roseink)}.history-empty-filter{display:none;margin-top:12px;padding:16px;border-radius:16px;background:#fff;text-align:center;color:var(--muted);font-size:11px}.history-empty-filter.show{display:block}
+    nav { position:absolute; left:0; right:0; bottom:0; height:82px; padding:5px; background:#fff; border-top:1px solid var(--line); display:flex; justify-content:space-around; align-items:center; }.nav { flex:1; height:68px; border-radius:16px; display:grid; place-items:center; align-content:center; text-align:center; color:var(--ink); font-size:9px; font-weight:800; cursor:pointer; user-select:none; }.nav b{display:none}.nav img{display:block;width:36px;height:36px;object-fit:contain;margin-bottom:1px;filter:drop-shadow(0 2px 3px #242a481c)}.nav.on{color:var(--violet);background:var(--lav)}
     [data-go], .score, .mini-score, .choice, .stool, .check { cursor:pointer; }
     [data-go]:active, button:active, .nav:active { transform:scale(.98); }
     .toast { position:fixed; left:50%; bottom:24px; z-index:10; transform:translateX(-50%) translateY(20px); background:#17223b; color:#fff; border-radius:99px; padding:11px 18px; font-size:13px; font-weight:800; opacity:0; pointer-events:none; transition:.2s ease; }
@@ -58,26 +80,31 @@
   </style>
 </head>
 <body><main class="page">
-  <div class="heading"><div><h1>Elle’s Journey — interactive preview</h1><p>Tap the menu and cards just like the Android app</p></div><div class="badge">live demo</div></div>
-  <div class="principles"><span>Daily: under 2 minutes</span><span>Weekly: detailed communication</span><span>Schedule-aware reminders</span><span>3 = Elle’s usual baseline</span><span>Video stays on the phone</span><span>Observations, not proof of cause</span></div>
+  <div class="heading"><div><h1>Elle’s Journey — final workflow</h1><p>Guided Weekly Talk Check, school and therapy notes, away days, and doctor reports</p></div><div class="badge">v1.4 final review</div></div>
+  <div class="principles"><span>Simple words for Tamika</span><span>Same five questions weekly</span><span>Tuesday primary • Wednesday backup</span><span>Away days never score zero</span><span>Video stays on the phone</span><span>Observations, not proof of cause</span></div>
   <div class="phones">
 
     <section class="phone active" data-screen="today"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Elle’s Journey</div><h2>Good morning</h2><p class="sub">Tuesday, October 8</p></div><div class="avatar">🌿</div></div>
-      <div class="hero"><div class="hero-line"><strong>Week 4 of 12</strong><span class="day">Day 24</span></div><div class="bar"><span></span></div><div class="day">Tuesday • school today • weekly sample after school</div></div>
+      <div class="hero"><div class="hero-line"><strong>Week 4 of 12</strong><span class="day">Day 24</span></div><div class="bar"><span></span></div><div class="day">Tuesday • school today • Weekly Talk Check after school</div></div>
       <div class="card"><div class="card-head"><div class="icon">Rx</div><div class="copy"><strong>Today’s doses</strong><span>Leucovorin • prescribed 10 mg twice daily</span></div></div><div class="dose-row"><div class="pill mint"><b>✓ First</b>10 mg • 8:05 AM</div><div class="pill amber-bg"><b>○ Second</b>10 mg • due tonight</div></div><button class="primary">Log second dose</button></div>
       <div class="card" data-go="daily"><div class="action-row"><div class="icon green">✓</div><div class="action-copy"><strong>Daily check-in</strong><span id="daily-status">Ratings, sleep, bowel + notes • 1–2 min</span></div><div class="arrow">›</div></div></div>
-      <div class="card" data-go="weekly"><div class="action-row"><div class="icon blue">💬</div><div class="action-copy"><strong>Weekly communication review</strong><span>Small talk, telling about her day + prompts</span></div><div class="arrow">›</div></div><div class="privacy">Due in 2 days • do this together when possible</div></div>
-      <div class="card" data-go="care"><div class="action-row"><div class="icon amber">✎</div><div class="action-copy"><strong>Add today’s school update</strong><span>Verbally reported by teacher • entered by Tamika</span></div><div class="arrow">›</div></div></div>
+      <div class="card" data-go="weekly"><div class="action-row"><div class="icon blue">💬</div><div class="action-copy"><strong>Weekly Talk Check</strong><span>Same five questions • the app guides every step</span></div><div class="arrow">›</div></div><div class="privacy">Today is the preferred day • after school</div></div>
+      <div class="card" data-go="weekly"><div class="action-row"><div class="icon blue">◎</div><div class="action-copy"><strong>Starting example saved</strong><span>Hand-holding reenactment • “Help mommy” • score 3/5</span></div><div class="arrow">›</div></div></div>
+      <div class="card" data-go="care"><div class="action-row"><div class="icon amber">✎</div><div class="action-copy"><strong>Add today’s school update</strong><span>Type it or use voice-to-text at pickup</span><div class="soft-label"><img src="assets/feature-voice-3d.png" alt="">Voice entry ready</div></div><div class="arrow">›</div></div></div>
       <div class="section">Next report</div><div class="card" data-go="reports"><div class="action-row"><div class="icon">6</div><div class="action-copy"><strong>Week 6 doctor report</strong><span>Includes detailed communication and bowel summary</span></div><div class="arrow">›</div></div></div>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
     <section class="phone" data-screen="daily"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
-      <div class="top"><div><div class="eyebrow">Week 4 • Day 24</div><h2>Daily check-in</h2><p class="sub">Rate today compared with Elle’s usual day</p></div><div class="avatar">✓</div></div>
-      <div class="card"><div class="card-head"><div class="icon">💬</div><div class="copy"><strong>Communication</strong><span>Sharing needs, ideas or experiences</span></div><div class="info">?</div></div><div class="scale-note"><span>0 • much lower</span><span>3 • usual</span><span>5 • clearly higher</span></div><div class="scale"><div class="score">0</div><div class="score">1</div><div class="score">2</div><div class="score">3</div><div class="score on">4</div><div class="score">5</div></div><div class="help"><strong>What to notice:</strong> words, gestures, clearer meaning, and attempts to tell or ask—not whether speech was “perfect.”</div></div>
-      <div class="card"><div class="metric"><div class="metric-top"><strong>Social connection</strong><span>seeks / responds / shares</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Focus & participation</strong><span>stays with activity</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score">3</i><i class="mini-score on">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Mood & regulation</strong><span>comfort and recovery</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Appetite</strong><span>amount vs usual</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div></div>
-      <div class="card"><div class="action-row"><div class="icon amber">☾</div><div class="action-copy"><strong>Sleep, bowel & comfort</strong><span>8 hours • bowel not logged • no concerns</span></div><div class="arrow">›</div></div></div>
-      <button class="primary" data-go="notes">Continue to health, bowel & notes</button>
+      <div class="top"><div><div class="eyebrow">Week 4 • Day 24</div><h2>How was Elle today?</h2><p class="sub">A guided check-in for Tamika • about 2 minutes</p></div><div class="avatar">✓</div></div>
+      <div class="stepper"><div class="step on"><b>1</b>Ratings</div><div class="step"><b>2</b>Health</div><div class="step"><b>3</b>Notes</div></div>
+      <div class="card"><div class="card-head"><div class="icon blue">◎</div><div class="copy"><strong>How much could you observe today?</strong><span>Away and health-only days do not receive communication scores</span></div></div><div class="choice-row"><div class="choice on">Observed enough to rate</div><div class="choice">Health only</div><div class="choice">Away / not observed</div></div><div class="help"><strong>Tamika:</strong> choose “Away / not observed” when Elle is with her grandmother.</div></div>
+      <div class="intro-card"><img src="assets/feature-communication-3d.png" alt=""><div><strong>Start with communication</strong><span>Compare Elle with her own usual day. A rating of 3 means typical for Elle.</span></div></div>
+      <div class="card"><div class="card-head"><div class="icon">💬</div><div class="copy"><strong>Communication today</strong><span>Sharing needs, ideas or experiences</span></div><div class="info">?</div></div><div class="scale-note"><span>0 • much lower</span><span>3 • usual</span><span>5 • clearly higher</span></div><div class="scale"><div class="score">0</div><div class="score">1</div><div class="score">2</div><div class="score">3</div><div class="score on">4</div><div class="score">5</div></div><div class="help"><strong>Look for:</strong> words, gestures, clearer meaning, and attempts to tell or ask—not whether speech was “perfect.”</div></div>
+      <div class="card"><div class="card-head"><div class="icon">✓</div><div class="copy"><strong>Rest of today</strong><span>Tap one number for each area</span></div></div><div class="metric"><div class="metric-top"><strong>Social connection</strong><span>seeks / responds / shares</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Focus & participation</strong><span>stays with activity</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score">3</i><i class="mini-score on">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Mood & regulation</strong><span>comfort and recovery</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Appetite</strong><span>amount vs usual</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div></div>
+      <div class="voice-card"><div class="voice-top"><div class="voice-art"><img src="assets/feature-voice-3d.png" alt=""></div><div class="voice-copy"><strong>Rather speak than type?</strong><span>Record a quick memory now. The phone converts it into editable text for the Notes step.</span></div></div><button class="voice-button" data-action="voice-daily"><img src="assets/feature-voice-3d.png" alt="">Speak a quick note</button><div class="voice-status" id="daily-voice-status">Voice audio is not saved—only the text you approve.</div></div>
+      <div class="card"><div class="action-row"><div class="icon amber">☾</div><div class="action-copy"><strong>Next: sleep, bowel & comfort</strong><span>8 hours • bowel not logged • no concerns</span></div><div class="arrow">›</div></div></div>
+      <button class="primary" data-go="notes">Continue to health & notes</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
     <section class="phone" data-screen="guide"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
@@ -88,61 +115,99 @@
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
     <section class="phone" data-screen="weekly"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
-      <div class="top"><div><div class="eyebrow">Once each week</div><h2>Communication review</h2><p class="sub">Week 4 • think across the whole week</p></div><div class="avatar">💬</div></div>
-      <div class="card"><div class="card-head"><div class="icon blue">↗</div><div class="copy"><strong>Elle’s conversation goals</strong><span>Rate independence and support needed</span></div><div class="info">?</div></div><div class="metric"><div class="metric-top"><strong>Starts communication herself</strong><span>requests, comments, shares</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Back-and-forth turns</strong><span>keeps exchange going</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score on">2</i><i class="mini-score">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Small talk & stays on topic</strong><span>social conversation</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score on">2</i><i class="mini-score">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Tells us about her day</strong><span>people, place, event, feeling</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Answers open questions</strong><span>more than yes / no</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Asks a follow-up question</strong><span>reciprocal interest</span></div><div class="mini-scale"><i class="mini-score on">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div></div>
-      <div class="rubric"><b>“Tells us about her day” example</b><span>1 = single word/yes-no with full help</span><span>3 = 2–3 details with several prompts</span><span>5 = coherent short story independently</span></div>
-      <button class="primary" data-go="sample">Continue to weekly example</button>
+      <div class="top"><div><div class="eyebrow">Week 4 • about 5 minutes</div><h2>Weekly Talk Check</h2><p class="sub">Tamika, the app guides you one question at a time</p></div><div class="avatar">💬</div></div>
+      <div class="intro-card"><img src="assets/feature-communication-3d.png" alt=""><div><strong>Use the same five questions every week</strong><span>Say the words shown. Wait 10 seconds before helping. The app scores the response for you.</span></div></div>
+      <div class="card"><div class="guide"><div class="g-icon">1</div><div><strong>Say exactly what is shown</strong><span>Do not explain or change the question.</span></div></div><div class="guide"><div class="g-icon">10</div><div><strong>Wait quietly for 10 seconds</strong><span>The app runs the timer. Do not fill the silence.</span></div></div><div class="guide"><div class="g-icon">3</div><div><strong>Save exactly what Elle did</strong><span>Words, gestures, acting, AAC, and remembered phrases all count.</span></div></div></div>
+      <div class="card"><div class="card-head"><div class="icon blue">T</div><div class="copy"><strong>Best time</strong><span>Tuesday after school</span></div><div class="pill lav" style="flex:0 0 auto">Primary</div></div><div class="card-head"><div class="icon amber">W</div><div class="copy"><strong>If Tuesday was missed</strong><span>Wednesday after Speech/OT</span></div><div class="pill amber-bg" style="flex:0 0 auto">Backup</div></div><div class="help"><strong>Do this only once that day.</strong> Stop if Elle is tired, upset, or does not want to continue.</div></div>
+      <button class="primary" data-go="sample">Start question 1</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
     <section class="phone" data-screen="notes"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
-      <div class="top"><div><div class="eyebrow">Daily health context</div><h2>Bowel & notes</h2><p class="sub">Quick to log; details only when needed</p></div><div class="avatar">●</div></div>
-      <div class="card"><div class="card-head"><div class="icon amber">●</div><div class="copy"><strong>Bowel movements today</strong><span>Helps identify tummy or routine changes</span></div><div class="info">?</div></div><div class="section" style="margin-top:4px">How many?</div><div class="choice-row"><div class="choice">None</div><div class="choice on">1</div><div class="choice">2</div><div class="choice">3+</div></div><div class="section">Closest consistency</div><div class="stools"><div class="stool"><b>1</b>pellets</div><div class="stool"><b>2</b>lumpy</div><div class="stool"><b>3</b>cracked</div><div class="stool on"><b>4</b>smooth</div><div class="stool"><b>5</b>soft</div><div class="stool"><b>6</b>mushy</div><div class="stool"><b>7</b>liquid</div></div><div class="checkline"><div class="check">Pain / straining</div><div class="check">Urgency / accident</div></div></div>
-      <div class="card"><div class="card-head"><div class="icon blue">✎</div><div class="copy"><strong>Moment note</strong><span>Structured details make reports more useful</span></div></div><div class="field"><strong>What happened?</strong>Elle told us about art class at dinner.</div><div class="field"><strong>Exact words or example</strong>“We painted a big purple flower.”</div><div class="field"><strong>Help or prompts given</strong>Asked “what did you make?” then waited.</div><div class="choice-row" style="margin-top:8px"><div class="choice on">Observed by Tamika</div><div class="choice">School</div><div class="choice">Therapy</div></div></div>
+      <div class="top"><div><div class="eyebrow">Daily check-in</div><h2>Health & useful moments</h2><p class="sub">Quick choices first, then speak or type a note</p></div><div class="avatar">✎</div></div>
+      <div class="stepper"><div class="step done"><b>✓</b>Ratings</div><div class="step on"><b>2</b>Health</div><div class="step"><b>3</b>Notes</div></div>
+      <div class="card"><div class="card-head"><div class="icon amber">●</div><div class="copy"><strong>Bowel & tummy today</strong><span>Useful context for comfort and tolerability</span></div><div class="info">?</div></div><div class="section" style="margin-top:4px">How many?</div><div class="choice-row"><div class="choice">None</div><div class="choice on">1</div><div class="choice">2</div><div class="choice">3+</div></div><div class="section">Closest consistency</div><div class="stools"><div class="stool"><b>1</b>pellets</div><div class="stool"><b>2</b>lumpy</div><div class="stool"><b>3</b>cracked</div><div class="stool on"><b>4</b>smooth</div><div class="stool"><b>5</b>soft</div><div class="stool"><b>6</b>mushy</div><div class="stool"><b>7</b>liquid</div></div><div class="checkline"><div class="check">Pain / straining</div><div class="check">Urgency / accident</div></div></div>
+      <div class="voice-card"><div class="voice-top"><div class="voice-art"><img src="assets/feature-voice-3d.png" alt=""></div><div class="voice-copy"><strong>Tell us what happened</strong><span>Speak naturally. We turn it into text, then Tamika can correct or add details before saving.</span></div></div><button class="voice-button" data-action="voice-note"><img src="assets/feature-voice-3d.png" alt="">Start voice-to-text</button><div class="voice-status" id="note-voice-status">No audio recording is kept.</div></div>
+      <div class="card"><div class="card-head"><div class="icon blue">✎</div><div class="copy"><strong>Communication moment</strong><span>Editable details make the doctor report more useful</span></div></div><div class="form-field"><div class="field-top"><strong>What happened and where?</strong><button class="mic-mini" data-action="voice-note"><img src="assets/feature-voice-3d.png" alt="Voice"></button></div><div class="field-value" id="voice-transcript">Elle told us about art class at dinner.</div></div><div class="form-field"><div class="field-top"><strong>Elle’s exact words or example</strong><button class="mic-mini" data-action="voice-note"><img src="assets/feature-voice-3d.png" alt="Voice"></button></div><div class="field-value">“We painted a big purple flower.”</div></div><div class="section">How did Elle communicate?</div><div class="choice-row"><div class="choice on">Spoken words</div><div class="choice">Gesture / acting</div><div class="choice">AAC / device</div><div class="choice">Mixed</div></div><div class="form-field"><div class="field-top"><strong>What do you think Elle meant?</strong></div><div class="field-value">Leave blank if you are unsure.</div></div><div class="form-field"><div class="field-top"><strong>What help or prompts were given?</strong><button class="mic-mini" data-action="voice-note"><img src="assets/feature-voice-3d.png" alt="Voice"></button></div><div class="field-value">Asked “what did you make?” then waited.</div></div><div class="source-strip"><div class="source-option on">Tamika observed</div><div class="source-option">School</div><div class="source-option">Therapy</div><div class="source-option">Other</div></div><div class="help"><strong>Gestures and remembered phrases count.</strong> Save exactly what happened; do not guess.</div></div>
       <div class="card"><div class="action-row"><div class="icon amber">!</div><div class="action-copy"><strong>Anything that affected today?</strong><span>Illness, poor sleep, school event, therapy or dose change</span></div><div class="arrow">›</div></div></div>
-      <button class="primary" data-action="save-daily">Save daily check-in</button>
+      <button class="primary" data-action="save-daily">Review & save today</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
     <section class="phone" data-screen="sample"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
-      <div class="top"><div><div class="eyebrow">Same school day each week</div><h2>Weekly language sample</h2><p class="sub">A repeatable 2-minute observation</p></div><div class="avatar">▶</div></div>
-      <div class="card"><div class="card-head"><div class="icon blue">1</div><div class="copy"><strong>Use these exact prompts</strong><span>Say each once, then quietly wait 10 seconds</span></div></div><div class="prompt"><small>Prompt 1 • personal story</small><strong>“Tell me about one thing that happened at school today.”</strong></div><div class="prompt"><small>Prompt 2 • sequence / expansion</small><strong>“What happened next?”</strong></div><div class="prompt"><small>Prompt 3 • feeling / meaning</small><strong>“How did you feel about it?”</strong></div><div class="prompt"><small>Prompt 4 • reciprocal social bid</small><strong>“Something happened in my day too.”</strong><span>Pause to see whether Elle comments or asks about it.</span></div></div>
-      <div class="card"><div class="card-head"><div class="icon green">✓</div><div class="copy"><strong>Keep measurement separate</strong><span>Practice freely after this short sample</span></div></div><div class="guide"><div class="g-icon">10</div><div><strong>Wait without filling the silence</strong><span>Use the same wait time each week.</span></div></div><div class="guide"><div class="g-icon">○</div><div><strong>Do not correct or model during the sample</strong><span>If extra help was needed, record exactly what was given.</span></div></div><div class="guide"><div class="g-icon">■</div><div><strong>Stop if she is distressed or does not want to continue</strong><span>Log “not completed” rather than pushing through.</span></div></div><button class="primary">● Record sample locally</button></div>
-      <div class="card"><div class="section" style="margin-top:0">What happened?</div><div class="choice-row"><div class="choice on">3 details</div><div class="choice">4 turns</div><div class="choice">Feeling word</div><div class="choice">Follow-up question</div></div><div class="field"><strong>Extra support used</strong>None • exact prompts and wait time only</div></div>
-      <div class="privacy">🔒 Video stays on this phone. GitHub receives only the date, completion, prompt support and observation counts.</div>
-      <button class="primary" data-action="save-weekly">Save weekly sample</button>
+      <div class="top"><div><div class="eyebrow" id="prompt-progress">Question 1 of 5</div><h2>Weekly Talk Check</h2><p class="sub">One question at a time</p></div><div class="avatar">▶</div></div>
+      <div class="stepper" id="prompt-steps"><div class="step on"><b>1</b></div><div class="step"><b>2</b></div><div class="step"><b>3</b></div><div class="step"><b>4</b></div><div class="step"><b>5</b></div></div>
+      <div class="prompt"><small>Say exactly this</small><strong id="prompt-text">“Elle, tell me about your day.”</strong><span>Say it once. Then tap the button and stay quiet.</span></div>
+      <button class="primary" data-action="start-wait" id="wait-button">Start 10-second wait</button>
+      <div class="privacy" id="wait-status">Ready to wait</div>
+      <div id="prompt-answer" hidden>
+        <div class="card"><div class="card-head"><div class="icon blue">✓</div><div class="copy"><strong>What did Elle do?</strong><span>Choose the closest answer</span></div></div><div class="choice-row" id="response-options"><div class="choice" data-score="0">No response / not related</div><div class="choice">Yes/no or one word</div><div class="choice on" data-score="3">One real detail</div><div class="choice" data-score="4">Two connected details</div><div class="choice" data-score="5">Short story or added more</div></div></div>
+        <div class="card"><div class="card-head"><div class="icon blue">◎</div><div class="copy"><strong>How much extra help?</strong><span>The set question does not count as help</span></div></div><div class="choice-row" id="support-options"><div class="choice on" data-cap="5">No extra help</div><div class="choice" data-cap="4">Repeated question</div><div class="choice" data-cap="3">More specific question</div><div class="choice" data-cap="2">Gave choices</div><div class="choice" data-cap="1">Gave words to copy</div></div><div class="help"><strong id="auto-score">Automatic score: 3/5</strong> • Tamika does not have to decide the score.</div></div>
+        <div class="card"><div class="card-head"><div class="icon blue">✎</div><div class="copy"><strong>Save exactly what happened</strong><span>Do not change Elle’s words</span></div></div><div class="choice-row"><div class="choice">Spoken words</div><div class="choice">Gesture / acting</div><div class="choice">AAC / device</div><div class="choice on">Words + acting</div></div><div class="form-field"><div class="field-top"><strong>Elle’s exact words, gesture, or action</strong><button class="mic-mini" data-action="voice-prompt"><img src="assets/feature-voice-3d.png" alt="Voice"></button></div><div class="field-value" id="prompt-transcript">Pretended to hold her teacher’s hand and said, “Help mommy.”</div></div><div class="form-field"><div class="field-top"><strong>What do you think Elle meant?</strong></div><div class="field-value">She was showing the moment her teacher walked her from the playground to the car.</div></div><div class="help"><strong>It is okay to be unsure.</strong> Leave the meaning blank rather than guessing.</div></div>
+        <button class="primary" data-action="next-prompt">Save answer and continue</button><button class="secondary" data-action="skip-prompt">This question was not asked</button>
+      </div>
+      <button class="secondary" data-action="stop-weekly">Stop for today</button>
+    </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
+
+    <section class="phone" data-screen="weekly-review"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+      <div class="top"><div><div class="eyebrow">Week 4 • review</div><h2>Talk Check summary</h2><p class="sub">Tamika can correct anything before saving</p></div><div class="avatar">✓</div></div>
+      <div class="hero"><div class="hero-line"><strong>Automatic average</strong><span class="day">5 questions</span></div><div class="bar"><span style="width:60%"></span></div><div class="day">3.0 / 5 • one relevant detail without extra help</div></div>
+      <div class="card"><div class="guide"><div class="g-icon">3</div><div><strong>Tell me about your day</strong><span>Words + acting • “Help mommy” • event confirmed</span></div></div><div class="guide"><div class="g-icon">2</div><div><strong>One thing you did today</strong><span>One-word answer after a more specific question</span></div></div><div class="guide"><div class="g-icon">4</div><div><strong>Who were you with?</strong><span>Two connected details with no extra help</span></div></div><div class="guide"><div class="g-icon">3</div><div><strong>Favorite part and why</strong><span>One detail with no extra help</span></div></div><div class="guide"><div class="g-icon">3</div><div><strong>Anything else?</strong><span>Added one relevant detail</span></div></div></div>
+      <div class="card"><div class="card-head"><div class="icon blue">↔</div><div class="copy"><strong>Two final facts</strong><span>Back-and-forth turns and spontaneous additions</span></div></div><div class="choice-row"><div class="choice">0 turns</div><div class="choice">1 turn</div><div class="choice on">2 turns</div><div class="choice">3 turns</div><div class="choice">4+ turns</div></div><div class="checkline"><div class="check">Feeling shown</div><div class="check on">Added more</div></div></div>
+      <div class="card"><div class="card-head"><div class="icon">▶</div><div class="copy"><strong>Optional private video</strong><span>Useful as an example, not proof of cause</span></div></div><button class="secondary">Record this Talk Check locally</button><div class="privacy">Video stays on this phone. The report saves only a video marker.</div></div>
+      <button class="primary" data-action="save-weekly">Save Week 4 Talk Check</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
     <section class="phone" data-screen="care"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
-      <div class="top"><div><div class="eyebrow">Care-team evidence</div><h2>School & therapy update</h2><p class="sub">Keep the source attached to every note</p></div><div class="avatar">✎</div></div>
-      <div class="card"><div class="section" style="margin-top:0">Update source</div><div class="choice-row"><div class="choice on">Teacher</div><div class="choice">Theraplay • Speech</div><div class="choice">Theraplay • OT</div><div class="choice">Speech + OT</div></div><div class="field"><strong>Person / provider</strong>Ms. Carter • verbally reported at pickup</div><button class="primary">🎙 Dictate school update</button><div class="field"><strong>Editable transcript</strong>Elle independently told a classmate about her art project and stayed in the conversation for three turns.</div><div class="help"><strong>Review before saving.</strong> The transcript—not the microphone recording—is used for search, tags, sync and reports.</div></div>
-      <div class="card"><div class="card-head"><div class="icon blue">#</div><div class="copy"><strong>Tag what was reported</strong><span>Tags help summarize notes without changing the teacher’s words</span></div></div><div class="choice-row"><div class="choice on">Spontaneous communication</div><div class="choice on">Peer interaction</div><div class="choice">Told about her day</div><div class="choice">Followed directions</div><div class="choice">Participation</div><div class="choice">Regulation / sensory</div><div class="choice">Independence / self-care</div><div class="choice">Concern</div></div></div>
-      <div class="card"><div class="card-head"><div class="icon amber">◎</div><div class="copy"><strong>For speech, OT or therapy</strong><span>Record the session goal and support—not just “better”</span></div></div><div class="field"><strong>Goal or skill practiced</strong>Back-and-forth conversation during a shared activity.</div><div class="field"><strong>Support and progress</strong>Visual cue plus one verbal prompt; five exchanges.</div><div class="field"><strong>Home recommendation</strong>Practice one open question at dinner.</div></div>
-      <div class="privacy">Teacher and clinician notes stay labeled separately from parent ratings. On-device transcription is preferred when the phone supports it.</div>
-      <button class="primary" data-action="save-care">Save care-team update</button>
+      <div class="top"><div><div class="eyebrow" id="care-context-label">School • Tuesday pickup</div><h2>Capture an update</h2><p class="sub">Designed for Tamika to finish in under a minute</p></div><div class="avatar">✎</div></div>
+      <div class="intro-card"><img src="assets/feature-school-3d.png" alt=""><div><strong>Who gave the update?</strong><span>The source stays attached so teacher, Speech, OT, and parent observations never get mixed together.</span></div></div>
+      <div class="source-strip"><div class="source-option on">Teacher</div><div class="source-option">Speech</div><div class="source-option">OT</div><div class="source-option">Speech + OT</div></div>
+      <div class="form-field"><div class="field-top"><strong>Person / provider</strong></div><div class="field-value" id="care-provider-display">Teacher not added yet • verbally reported at pickup</div></div>
+      <div class="voice-card"><div class="voice-top"><div class="voice-art"><img src="assets/feature-voice-3d.png" alt=""></div><div class="voice-copy"><strong>Speak the update</strong><span>Tap once, repeat what the teacher said, then review the editable transcript.</span></div></div><button class="voice-button" data-action="voice-care"><img src="assets/feature-voice-3d.png" alt="">Start voice-to-text</button><div class="voice-status" id="care-voice-status">Uses the phone’s speech service. Raw audio is not stored.</div></div>
+      <div class="card"><div class="card-head"><div class="icon blue">✎</div><div class="copy"><strong>Editable transcript</strong><span>Correct names or wording before saving</span></div></div><div class="form-field"><div class="field-value" id="care-transcript">Elle independently told a classmate about her art project and stayed in the conversation for three turns.</div></div><div class="help"><strong>What gets saved:</strong> this reviewed text—not the microphone recording.</div></div>
+      <div class="card"><div class="card-head"><div class="icon blue">#</div><div class="copy"><strong>What did the update cover?</strong><span>Optional tags make the six-week report easier to scan</span></div></div><div class="choice-row"><div class="choice on">Spontaneous communication</div><div class="choice on">Peer interaction</div><div class="choice">Told about her day</div><div class="choice">Participation</div><div class="choice">Regulation / sensory</div><div class="choice">Concern</div></div></div>
+      <div class="card"><div class="card-head"><div class="icon amber">◎</div><div class="copy"><strong>Therapy details when relevant</strong><span>Goal, support used, measurable progress, and home recommendation</span></div></div><div class="form-field"><div class="field-top"><strong>Goal or skill practiced</strong></div><div class="field-value">Back-and-forth conversation during a shared activity.</div></div><div class="form-field"><div class="field-top"><strong>Support and progress</strong></div><div class="field-value">Visual cue plus one verbal prompt; five exchanges.</div></div></div>
+      <div class="privacy">Teacher and clinician notes stay labeled separately from parent ratings.</div>
+      <button class="primary" data-action="save-care">Review & save update</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
     <section class="phone" data-screen="settings"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
-      <div class="top"><div><div class="eyebrow">Set once • change anytime</div><h2>Care schedule</h2><p class="sub">The Today screen follows Elle’s actual week</p></div><div class="avatar">▦</div></div>
-      <div class="card"><div class="card-head"><div class="icon blue">M</div><div class="copy"><strong>Monday</strong><span>School</span></div><div class="pill mint" style="flex:0 0 auto">Teacher update</div></div><div class="card-head"><div class="icon blue">T</div><div class="copy"><strong>Tuesday</strong><span>School</span></div><div class="pill lav" style="flex:0 0 auto">Weekly sample</div></div><div class="card-head"><div class="icon amber">W</div><div class="copy"><strong>Wednesday</strong><span>Theraplay • Speech + OT</span></div><div class="pill amber-bg" style="flex:0 0 auto">Session note</div></div><div class="card-head"><div class="icon green">T</div><div class="copy"><strong>Thursday</strong><span>Home / no scheduled session</span></div><div class="pill mint" style="flex:0 0 auto">No reminder</div></div><div class="card-head"><div class="icon green">F</div><div class="copy"><strong>Friday</strong><span>Home / no scheduled session</span></div><div class="pill mint" style="flex:0 0 auto">No reminder</div></div></div>
-      <div class="card"><div class="card-head"><div class="icon">⏱</div><div class="copy"><strong>Suggested reminders</strong><span>Edit times to match pickup and appointments</span></div></div><div class="field"><strong>Monday school update</strong>4:30 PM</div><div class="field"><strong>Tuesday school update + language sample</strong>4:30 PM</div><div class="field"><strong>Wednesday Theraplay Speech/OT note</strong>After session</div></div>
-      <div class="privacy">Thursday and Friday still show the normal daily check-in, but no school or therapy reminder.</div>
-      <button class="primary" data-action="save-settings">Save care schedule</button>
+      <div class="top"><div><div class="eyebrow">Set once • change anytime</div><h2>School & care setup</h2><p class="sub">Teacher details, class, schedule, and reminders</p></div><div class="avatar">▦</div></div>
+      <div class="card"><div class="card-head"><div class="icon blue">✎</div><div class="copy"><strong>School & classroom</strong><span>Used to prefill teacher updates and reports</span></div></div><div class="setup-grid"><label class="setup-field wide">School name<input class="setup-input" id="school-name" placeholder="Add school name"></label><label class="setup-field">Primary teacher<input class="setup-input" id="teacher-name" placeholder="Add teacher name"></label><label class="setup-field">Class / grade<input class="setup-input" id="class-name" placeholder="Add class or grade"></label><label class="setup-field wide">Usual update method<select class="setup-input" id="update-method"><option>In person at pickup</option><option>Teacher message or app</option><option>Email</option><option>Phone call</option><option>Written daily note</option></select></label></div><div class="help"><strong>Enter once.</strong> Tamika can still change the teacher or source on any individual update.</div></div>
+      <div class="card"><div class="card-head"><div class="icon blue" data-art="communication">◎</div><div class="copy"><strong>Theraplay • Speech & OT</strong><span>Used to prefill Wednesday therapy updates</span></div></div><div class="setup-grid"><label class="setup-field wide">Clinic / provider<input class="setup-input" id="therapy-clinic" placeholder="Theraplay or clinic name"></label><label class="setup-field wide">Speech therapist<input class="setup-input" id="speech-therapist" placeholder="Add Speech provider"></label><label class="setup-field wide">OT therapist<input class="setup-input" id="ot-therapist" placeholder="Add OT provider"></label><label class="setup-field wide">Regular session day<select class="setup-input" id="therapy-day"><option>Monday</option><option>Tuesday</option><option selected>Wednesday</option><option>Thursday</option><option>Friday</option></select></label><label class="setup-field wide">Usual update method<select class="setup-input" id="therapy-update-method"><option>In person after session</option><option>Clinician message or app</option><option>Email</option><option>Phone call</option><option>Written session note</option></select></label></div><div class="help"><strong>Speech and OT stay separate.</strong> A combined update can include both provider names.</div></div>
+      <div class="card"><div class="card-head"><div class="icon blue">M</div><div class="copy"><strong>Monday</strong><span>School</span></div><div class="pill mint" style="flex:0 0 auto">Teacher update</div></div><div class="card-head"><div class="icon blue">T</div><div class="copy"><strong>Tuesday</strong><span>School</span></div><div class="pill lav" style="flex:0 0 auto">Main Talk Check</div></div><div class="card-head"><div class="icon amber">W</div><div class="copy"><strong>Wednesday</strong><span>Theraplay • Speech + OT</span></div><div class="pill amber-bg" style="flex:0 0 auto">Backup Talk Check</div></div><div class="card-head"><div class="icon green">T</div><div class="copy"><strong>Thursday</strong><span>Quiet home day</span></div><div class="pill mint" style="flex:0 0 auto">Health only is okay</div></div><div class="card-head"><div class="icon green">F</div><div class="copy"><strong>Friday</strong><span>Home or custody transition</span></div><div class="pill mint" style="flex:0 0 auto">Flexible</div></div></div>
+      <div class="card"><div class="card-head"><div class="icon">▦</div><div class="copy"><strong>Every-other-weekend schedule</strong><span>Friday night through Sunday morning with grandmother</span></div></div><div class="form-field"><div class="field-top"><strong>First away Friday</strong></div><div class="field-value">Friday, October 11</div></div><div class="checkline"><div class="check on">Every other weekend</div><div class="check on">Pause full check-in</div></div><div class="help"><strong>Away days never score zero.</strong> Medication can be “Confirmed by caregiver” or “Not confirmed.” Not confirmed does not mean missed.</div></div>
+      <div class="card"><div class="card-head"><div class="icon">⏱</div><div class="copy"><strong>Suggested reminders</strong><span>Edit times to match pickup and appointments</span></div></div><div class="field"><strong>Monday school update</strong>4:30 PM</div><div class="field"><strong>Tuesday school update + Talk Check</strong>4:30 PM</div><div class="field"><strong>Wednesday Theraplay Speech/OT note</strong>After session</div></div>
+      <div class="privacy">Thursday and Friday can be medication and health-only days. Scheduled away weekends pause the full check-in.</div>
+      <button class="primary" data-action="save-settings">Save school & care settings</button>
     </div><nav><div class="nav"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav on"><b>⚙</b>Settings</div></nav></section>
 
     <section class="phone" data-screen="reports"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Week 6 clinical summary</div><h2>Doctor report</h2><p class="sub">Observations through day 42</p></div><div class="avatar">▥</div></div>
-      <div class="card"><div class="card-head"><div class="icon">Rx</div><div class="copy"><strong>Medication & completion</strong><span>Prescribed schedule plus actual doses logged</span></div></div><div class="mini-stats"><div class="stat mint"><b>81 / 84</b><span>Doses recorded</span></div><div class="stat lav"><b>40 / 42</b><span>Daily check-ins</span></div></div></div>
-      <div class="card"><div class="card-head"><div class="icon blue">💬</div><div class="copy"><strong>Communication detail</strong><span>Daily trend + six weekly reviews</span></div></div><div class="metric"><div class="metric-top"><strong>Tells about her day</strong><span>2.0 → 3.5</span></div></div><div class="metric"><div class="metric-top"><strong>Back-and-forth turns</strong><span>2.3 → 3.1</span></div></div><div class="metric"><div class="metric-top"><strong>Small talk / topic</strong><span>1.8 → 2.7</span></div></div><div class="help">Parent-defined 0–5 observation ratings. These are not a validated clinical scale.</div></div>
+      <div class="card"><div class="card-head"><div class="icon">Rx</div><div class="copy"><strong>Medication & observation coverage</strong><span>Prescribed schedule plus what the family could confirm</span></div></div><div class="mini-stats"><div class="stat mint"><b>81</b><span>Doses recorded</span></div><div class="stat lav"><b>34</b><span>Observed check-ins</span></div><div class="stat amber-bg"><b>4</b><span>Away days</span></div><div class="stat rose"><b>2</b><span>Not confirmed</span></div></div><div class="help"><strong>Not confirmed is not counted as missed.</strong> Away and health-only days are excluded from communication averages.</div></div>
+      <div class="card"><div class="card-head"><div class="icon blue">💬</div><div class="copy"><strong>Standardized Talk Check</strong><span>Same five questions and 10-second wait</span></div></div><div class="metric"><div class="metric-top"><strong>Automatic response score</strong><span>3.0 → 3.6</span></div></div><div class="metric"><div class="metric-top"><strong>Relevant details shared</strong><span>1 → 3</span></div></div><div class="metric"><div class="metric-top"><strong>Back-and-forth turns</strong><span>1 → 3</span></div></div><div class="help">Starting example: hand-holding reenactment and “Help mommy.” Later changes are described as occurring during the trial—not proof that medication caused them.</div></div>
       <div class="card"><div class="card-head"><div class="icon amber">●</div><div class="copy"><strong>Tolerability & context</strong><span>Sleep, appetite, bowel and reported concerns</span></div></div><div class="mini-stats"><div class="stat amber-bg"><b>3 days</b><span>Tummy concerns</span></div><div class="stat rose"><b>1 day</b><span>Loose stool</span></div></div></div>
-      <div class="card"><ul class="report-list"><li><b>✓</b> Structured moment notes and exact examples</li><li><b>✓</b> Weekly prompt results and support used</li><li><b>✓</b> Teacher, speech and OT notes by source</li><li><b>✓</b> Weekly video index; clips not embedded</li><li><b>✓</b> Illness, sleep, school and therapy context</li></ul></div>
+      <div class="card"><ul class="report-list"><li><b>✓</b> Exact words, gestures, meaning, and help used</li><li><b>✓</b> Five prompt scores with support level</li><li><b>✓</b> Teacher, Speech, and OT notes by source</li><li><b>✓</b> Observed, health-only, and away days separated</li><li><b>✓</b> Weekly video index; clips not embedded</li></ul></div>
       <button class="primary" data-action="share-report">Preview and share PDF</button>
     </div><nav><div class="nav"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav on"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
     <section class="phone" data-screen="history"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
-      <div class="top"><div><div class="eyebrow">Saved observations</div><h2>History</h2><p class="sub">Daily, weekly and care-team entries</p></div><div class="avatar">▦</div></div>
-      <div class="card" id="history-empty"><div class="card-head"><div class="icon">○</div><div class="copy"><strong>No observations yet</strong><span>Save a daily check-in to see it here</span></div></div><button class="primary" data-go="daily">Start Day 1 check-in</button></div>
+      <div class="top"><div><div class="eyebrow">Find anything quickly</div><h2>History</h2><p class="sub">Filter by week, source, or words in a note</p></div><div class="avatar">▦</div></div>
+      <div class="card" id="history-empty"><div class="card-head"><div class="icon">○</div><div class="copy"><strong>No observations yet</strong><span>Daily, school, therapy, and weekly entries will appear here</span></div></div><button class="primary" data-go="daily">Start Day 1 check-in</button></div>
       <div id="history-entry" hidden>
-        <div class="section">Daily check-ins</div>
-        <div class="card" data-go="daily"><div class="card-head"><div class="icon green">✓</div><div class="copy"><strong>October 8 • Day 1</strong><span>Overall response 3.5/5 • Sleep 8 hours</span></div><div class="arrow">›</div></div><div class="pill mint"><b>✓ Check-in saved</b>2 doses recorded • tells about her day 3/5</div><div class="field"><strong>Communication example</strong>“We painted a big purple flower.”</div></div>
+        <div class="history-summary"><div class="history-summary-top"><img src="assets/nav-history-3d.png" alt=""><div><strong>Weeks 2–4 at a glance</strong><span>Observed, health-only, and away days stay separate</span></div></div><div class="history-stats"><div class="history-stat"><b>18</b><span>Observed</span></div><div class="history-stat"><b>35</b><span>Doses</span></div><div class="history-stat"><b>2</b><span>Away days</span></div></div></div>
+        <label class="history-search"><img src="assets/feature-notes-3d.png" alt=""><input id="history-search" placeholder="Search notes, people, or exact words"></label>
+        <div class="section">Show entries</div>
+        <div class="filter-row"><button class="history-filter on" data-history-filter="all">All</button><button class="history-filter" data-history-filter="daily">Daily</button><button class="history-filter" data-history-filter="school">School</button><button class="history-filter" data-history-filter="therapy">Speech / OT</button><button class="history-filter" data-history-filter="weekly">Talk Check</button><button class="history-filter" data-history-filter="away">Away days</button></div>
+        <div class="history-controls"><strong>Choose a week</strong><select class="history-sort" id="history-sort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></div>
+        <div class="week-row"><button class="week-chip on" data-history-week="all">All weeks</button><button class="week-chip" data-history-week="4">Week 4</button><button class="week-chip" data-history-week="3">Week 3</button><button class="week-chip" data-history-week="2">Week 2</button></div>
+        <div id="history-timeline">
+          <div class="day-group" data-week="4"><div class="day-heading" data-day-toggle><div class="day-date">OCT<b>8</b></div><div class="day-title"><strong>Tuesday • Day 21</strong><span>Daily check-in + teacher update</span></div><div class="day-toggle">⌄</div></div><div class="day-body"><div class="history-entry" data-entry-type="daily"><div class="entry-art"><img src="assets/feature-communication-3d.png" alt=""></div><div class="entry-copy"><strong>Daily check-in • 4:42 PM</strong><span>Communication 4/5 • tells about her day 3/5 • sleep 8h</span><div class="entry-tags"><i class="entry-tag good">2 doses</i><i class="entry-tag voice">Voice note</i></div></div><div class="arrow">›</div></div><div class="history-entry" data-entry-type="school"><div class="entry-art"><img src="assets/feature-school-3d.png" alt=""></div><div class="entry-copy"><strong>Teacher update • Ms. Carter</strong><span>Elle told a classmate about her art project and stayed for three turns.</span><div class="entry-tags"><i class="entry-tag good">Peer interaction</i><i class="entry-tag">School</i></div></div><div class="arrow">›</div></div></div></div>
+          <div class="day-group" data-week="4"><div class="day-heading" data-day-toggle><div class="day-date">OCT<b>7</b></div><div class="day-title"><strong>Monday • Day 20</strong><span>Daily check-in</span></div><div class="day-toggle">⌄</div></div><div class="day-body"><div class="history-entry" data-entry-type="daily"><div class="entry-art"><img src="assets/feature-sleep-3d.png" alt=""></div><div class="entry-copy"><strong>Daily check-in • 7:18 PM</strong><span>Usual day overall • sleep 7.5h • bowel consistency 4</span><div class="entry-tags"><i class="entry-tag good">2 doses</i><i class="entry-tag">No concerns</i></div></div><div class="arrow">›</div></div></div></div>
+          <div class="day-group" data-week="3"><div class="day-heading" data-day-toggle><div class="day-date">OCT<b>2</b></div><div class="day-title"><strong>Wednesday • Day 15</strong><span>Daily check-in + Speech/OT</span></div><div class="day-toggle">⌄</div></div><div class="day-body"><div class="history-entry" data-entry-type="therapy"><div class="entry-art"><img src="assets/feature-communication-3d.png" alt=""></div><div class="entry-copy"><strong>Speech + OT update</strong><span>Five back-and-forth exchanges with a visual cue and one verbal prompt.</span><div class="entry-tags"><i class="entry-tag voice">Speech</i><i class="entry-tag voice">OT</i></div></div><div class="arrow">›</div></div><div class="history-entry" data-entry-type="daily"><div class="entry-art"><img src="assets/feature-notes-3d.png" alt=""></div><div class="entry-copy"><strong>Daily check-in • 6:03 PM</strong><span>Communication 3/5 • focus 4/5 • no tummy concerns</span><div class="entry-tags"><i class="entry-tag good">2 doses</i></div></div><div class="arrow">›</div></div></div></div>
+          <div class="day-group collapsed" data-week="3"><div class="day-heading" data-day-toggle><div class="day-date">OCT<b>1</b></div><div class="day-title"><strong>Tuesday • Day 14</strong><span>3 entries • tap to expand</span></div><div class="day-toggle">⌄</div></div><div class="day-body"><div class="history-entry" data-entry-type="weekly"><div class="entry-art"><img src="assets/feature-video-3d.png" alt=""></div><div class="entry-copy"><strong>Week 3 language sample</strong><span>3 details • 4 turns • feeling word observed • video marker saved</span><div class="entry-tags"><i class="entry-tag voice">Weekly sample</i></div></div><div class="arrow">›</div></div><div class="history-entry" data-entry-type="school"><div class="entry-art"><img src="assets/feature-school-3d.png" alt=""></div><div class="entry-copy"><strong>Teacher update</strong><span>Participated in art and answered one open question.</span></div><div class="arrow">›</div></div><div class="history-entry" data-entry-type="daily"><div class="entry-art"><img src="assets/feature-communication-3d.png" alt=""></div><div class="entry-copy"><strong>Daily check-in</strong><span>Communication 3/5 • tells about her day 3/5</span></div><div class="arrow">›</div></div></div></div>
+          <div class="day-group collapsed" data-week="2"><div class="day-heading" data-day-toggle><div class="day-date">SEP<b>24</b></div><div class="day-title"><strong>Tuesday • Day 7</strong><span>2 entries • one concern noted</span></div><div class="day-toggle">⌄</div></div><div class="day-body"><div class="history-entry" data-entry-type="daily"><div class="entry-art"><img src="assets/feature-sleep-3d.png" alt=""></div><div class="entry-copy"><strong>Daily check-in</strong><span>Sleep change and tummy discomfort noted.</span><div class="entry-tags"><i class="entry-tag concern">Tummy concern</i><i class="entry-tag">1 dose</i></div></div><div class="arrow">›</div></div><div class="history-entry" data-entry-type="weekly"><div class="entry-art"><img src="assets/feature-video-3d.png" alt=""></div><div class="entry-copy"><strong>Week 2 language sample</strong><span>2 details • 3 turns • direct prompts used</span></div><div class="arrow">›</div></div></div></div>
+          <div class="day-group collapsed" data-week="2"><div class="day-heading" data-day-toggle><div class="day-date">SEP<b>21</b></div><div class="day-title"><strong>Saturday • Day 4</strong><span>Scheduled away day</span></div><div class="day-toggle">⌄</div></div><div class="day-body"><div class="history-entry" data-entry-type="away"><div class="entry-art"><img src="assets/nav-today-3d.png" alt=""></div><div class="entry-copy"><strong>Away / not observed</strong><span>No communication score • medication confirmed by caregiver</span><div class="entry-tags"><i class="entry-tag">Not scored</i><i class="entry-tag good">2 doses confirmed</i></div></div><div class="arrow">›</div></div></div></div>
+        </div>
+        <div class="history-empty-filter" id="history-empty-filter">No entries match these filters.</div>
       </div>
     </div><nav><div class="nav"><b>⌂</b>Today</div><div class="nav on"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
@@ -150,10 +215,83 @@
 </main>
 <div class="toast" role="status" aria-live="polite"></div>
 <script>
+  const navIcons = {
+    Today: 'assets/nav-today-3d.png',
+    History: 'assets/nav-history-3d.png',
+    Reports: 'assets/nav-reports-3d.png',
+    Settings: 'assets/nav-settings-3d.png'
+  };
+  document.querySelectorAll('.nav').forEach(item => {
+    const label = Object.keys(navIcons).find(name => item.textContent.includes(name));
+    if (!label) return;
+    const image = document.createElement('img');
+    image.src = navIcons[label];
+    image.alt = '';
+    item.prepend(image);
+  });
+
+  const featureIcons = {
+    medicine: 'assets/feature-medicine-3d.png',
+    communication: 'assets/feature-communication-3d.png',
+    sleep: 'assets/feature-sleep-3d.png',
+    notes: 'assets/feature-notes-3d.png',
+    voice: 'assets/feature-voice-3d.png',
+    school: 'assets/feature-school-3d.png',
+    video: 'assets/feature-video-3d.png',
+    reports: 'assets/nav-reports-3d.png'
+  };
+  const screenIcons = {
+    today: 'assets/nav-today-3d.png', daily: featureIcons.communication,
+    guide: featureIcons.communication, weekly: featureIcons.communication,
+    notes: featureIcons.notes, sample: featureIcons.communication, 'weekly-review': featureIcons.notes, care: featureIcons.school,
+    settings: 'assets/nav-settings-3d.png', reports: 'assets/nav-reports-3d.png',
+    history: 'assets/nav-history-3d.png'
+  };
+
+  document.querySelectorAll('[data-screen]').forEach(screen => {
+    const avatar = screen.querySelector('.avatar');
+    if (!avatar || !screenIcons[screen.dataset.screen]) return;
+    avatar.textContent = '';
+    const image = document.createElement('img');
+    image.src = screenIcons[screen.dataset.screen];
+    image.alt = '';
+    avatar.append(image);
+  });
+
+  function featureIconFor(text) {
+    const value = text.toLowerCase();
+    if (value.includes('dose') || value.includes('medication') || value.includes('leucovorin')) return featureIcons.medicine;
+    if (value.includes('school') || value.includes('teacher') || value.includes('speech') || value.includes('therapy') || /\bot\b/.test(value)) return featureIcons.school;
+    if (value.includes('sleep') || value.includes('bowel') || value.includes('tummy') || value.includes('tolerability') || value.includes('comfort')) return featureIcons.sleep;
+    if (value.includes('video') || value.includes('record sample')) return featureIcons.video;
+    if (value.includes('report')) return featureIcons.reports;
+    if (value.includes('communication') || value.includes('conversation') || value.includes('daily check-in')) return featureIcons.communication;
+    return featureIcons.notes;
+  }
+
+  document.querySelectorAll('.card .icon').forEach(icon => {
+    const original = icon.textContent.trim();
+    if (/^[MTWF]$/.test(original) || /^[0-9]+$/.test(original)) return;
+    icon.textContent = '';
+    icon.classList.add('art');
+    const image = document.createElement('img');
+    image.src = icon.dataset.art ? featureIcons[icon.dataset.art] : featureIconFor(icon.closest('.card').textContent);
+    image.alt = '';
+    icon.append(image);
+  });
+
   const screens = Object.fromEntries([...document.querySelectorAll('[data-screen]')]
     .map(screen => [screen.dataset.screen, screen]));
   const toast = document.querySelector('.toast');
   let toastTimer;
+  let promptIndex = 0;
+  const weeklyPrompts = [
+    'Elle, tell me about your day.',
+    'What is one thing you did today?',
+    'Who did you spend time with, and what did you do?',
+    'What was your favorite part? Why?',
+    'Is there anything else you want to tell me?'
+  ];
 
   function showToast(message) {
     toast.textContent = message;
@@ -169,11 +307,95 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function updatePromptScreen() {
+    document.getElementById('prompt-progress').textContent = `Question ${promptIndex + 1} of 5`;
+    document.getElementById('prompt-text').textContent = `“${weeklyPrompts[promptIndex]}”`;
+    document.querySelectorAll('#prompt-steps .step').forEach((step, index) => step.classList.toggle('on', index <= promptIndex));
+    document.getElementById('prompt-answer').hidden = true;
+    document.getElementById('wait-status').textContent = 'Ready to wait';
+    const waitButton = document.getElementById('wait-button');
+    waitButton.disabled = false;
+    waitButton.textContent = 'Start 10-second wait';
+  }
+
+  function updatePromptScore() {
+    const responseOptions = [...document.querySelectorAll('#response-options .choice')];
+    const supportOptions = [...document.querySelectorAll('#support-options .choice')];
+    const responseIndex = Math.max(0, responseOptions.findIndex(item => item.classList.contains('on')));
+    const supportIndex = Math.max(0, supportOptions.findIndex(item => item.classList.contains('on')));
+    const baseScores = [0, 2, 3, 4, 5];
+    const caps = [5, 4, 3, 2, 1];
+    document.getElementById('auto-score').textContent = `Automatic score: ${Math.min(baseScores[responseIndex], caps[supportIndex])}/5`;
+  }
+
   function updateSavedState() {
     const saved = localStorage.getItem('ellesJourneyPreviewDay1') === 'saved';
     document.querySelector('#history-empty').hidden = saved;
     document.querySelector('#history-entry').hidden = !saved;
     if (saved) document.querySelector('#daily-status').textContent = '✓ Today’s check-in saved • tap to review';
+  }
+
+  function loadSchoolSettings() {
+    let school = {};
+    let therapy = {};
+    try { school = JSON.parse(localStorage.getItem('ellesJourneySchoolSettings') || '{}'); } catch (_) {}
+    try { therapy = JSON.parse(localStorage.getItem('ellesJourneyTherapySettings') || '{}'); } catch (_) {}
+    document.getElementById('school-name').value = school.school || '';
+    document.getElementById('teacher-name').value = school.teacher || '';
+    document.getElementById('class-name').value = school.classroom || '';
+    document.getElementById('update-method').value = school.method || 'In person at pickup';
+    document.getElementById('therapy-clinic').value = therapy.clinic || '';
+    document.getElementById('speech-therapist').value = therapy.speech || '';
+    document.getElementById('ot-therapist').value = therapy.ot || '';
+    document.getElementById('therapy-day').value = therapy.day || 'Wednesday';
+    document.getElementById('therapy-update-method').value = therapy.method || 'In person after session';
+    updateCarePrefill();
+  }
+
+  function updateCarePrefill() {
+    const source = document.querySelector('[data-screen="care"] .source-option.on')?.textContent.trim() || 'Teacher';
+    const provider = document.getElementById('care-provider-display');
+    const context = document.getElementById('care-context-label');
+    if (source === 'Teacher') {
+      const teacher = document.getElementById('teacher-name').value.trim() || 'Teacher not added yet';
+      const classroom = document.getElementById('class-name').value.trim();
+      const method = document.getElementById('update-method').value.toLowerCase();
+      provider.textContent = `${teacher}${classroom ? ` • ${classroom}` : ''} • ${method}`;
+      context.textContent = 'School • teacher update';
+      return;
+    }
+    const clinic = document.getElementById('therapy-clinic').value.trim() || 'Therapy clinic not added yet';
+    const speech = document.getElementById('speech-therapist').value.trim() || 'Speech provider not added yet';
+    const ot = document.getElementById('ot-therapist').value.trim() || 'OT provider not added yet';
+    const day = document.getElementById('therapy-day').value;
+    const method = document.getElementById('therapy-update-method').value.toLowerCase();
+    const names = source === 'Speech' ? speech : source === 'OT' ? ot : `${speech} + ${ot}`;
+    provider.textContent = `${names} • ${clinic} • ${method}`;
+    context.textContent = `${source} • ${day} session`;
+  }
+
+  let activeHistoryFilter = 'all';
+  let activeHistoryWeek = 'all';
+
+  function applyHistoryFilters() {
+    const selectedFilter = document.querySelector('[data-history-filter].on')?.getAttribute('data-history-filter') || activeHistoryFilter;
+    const selectedWeek = document.querySelector('[data-history-week].on')?.getAttribute('data-history-week') || activeHistoryWeek;
+    const query = document.getElementById('history-search').value.trim().toLowerCase();
+    let visibleGroups = 0;
+    document.querySelectorAll('#history-timeline .day-group').forEach(group => {
+      const weekMatches = selectedWeek === 'all' || group.getAttribute('data-week') === selectedWeek;
+      let visibleEntries = 0;
+      group.querySelectorAll('[data-entry-type]').forEach(entry => {
+        const typeMatches = selectedFilter === 'all' || entry.getAttribute('data-entry-type') === selectedFilter;
+        const searchMatches = !query || entry.textContent.toLowerCase().includes(query);
+        entry.hidden = !(weekMatches && typeMatches && searchMatches);
+        if (!entry.hidden) visibleEntries++;
+      });
+      group.hidden = !weekMatches || visibleEntries === 0;
+      if (!group.hidden && (query || selectedFilter !== 'all')) group.classList.remove('collapsed');
+      if (!group.hidden) visibleGroups++;
+    });
+    document.getElementById('history-empty-filter').classList.toggle('show', visibleGroups === 0);
   }
 
   document.addEventListener('click', event => {
@@ -184,6 +406,30 @@
       else if (label.includes('Reports')) showScreen('reports');
       else if (label.includes('Settings')) showScreen('settings');
       else showScreen('today');
+      return;
+    }
+
+    const dayToggle = event.target.closest('[data-day-toggle]');
+    if (dayToggle) {
+      dayToggle.closest('.day-group').classList.toggle('collapsed');
+      return;
+    }
+
+    const historyFilter = event.target.closest('[data-history-filter]');
+    if (historyFilter) {
+      document.querySelectorAll('[data-history-filter]').forEach(item => item.classList.remove('on'));
+      historyFilter.classList.add('on');
+      activeHistoryFilter = historyFilter.dataset.historyFilter;
+      applyHistoryFilters();
+      return;
+    }
+
+    const historyWeek = event.target.closest('[data-history-week]');
+    if (historyWeek) {
+      document.querySelectorAll('[data-history-week]').forEach(item => item.classList.remove('on'));
+      historyWeek.classList.add('on');
+      activeHistoryWeek = historyWeek.dataset.historyWeek;
+      applyHistoryFilters();
       return;
     }
 
@@ -200,10 +446,12 @@
       return;
     }
 
-    const option = event.target.closest('.choice, .stool');
+    const option = event.target.closest('.choice, .stool, .source-option');
     if (option) {
       option.parentElement.querySelectorAll('.on').forEach(item => item.classList.remove('on'));
       option.classList.add('on');
+      if (option.classList.contains('source-option') && option.closest('[data-screen="care"]')) updateCarePrefill();
+      if (option.closest('#response-options') || option.closest('#support-options')) updatePromptScore();
       return;
     }
 
@@ -218,26 +466,97 @@
       return;
     }
 
-    const action = event.target.closest('[data-action]')?.dataset.action;
-    if (action === 'save-daily') {
+    const actionTarget = event.target.closest('[data-action]');
+    const action = actionTarget?.dataset.action;
+    if (action === 'start-wait') {
+      let seconds = 10;
+      const status = document.getElementById('wait-status');
+      actionTarget.disabled = true;
+      status.textContent = `Wait quietly… ${seconds}`;
+      const timer = setInterval(() => {
+        seconds--;
+        if (seconds > 0) {
+          status.textContent = `Wait quietly… ${seconds}`;
+        } else {
+          clearInterval(timer);
+          status.textContent = 'Now record what Elle did';
+          actionTarget.textContent = '10-second wait complete';
+          document.getElementById('prompt-answer').hidden = false;
+        }
+      }, 1000);
+    } else if (action === 'next-prompt' || action === 'skip-prompt') {
+      if (promptIndex < 4) {
+        promptIndex++;
+        updatePromptScreen();
+        showToast(action === 'skip-prompt' ? `Question skipped • question ${promptIndex + 1} ready` : `Question ${promptIndex + 1} ready`);
+        screens.sample.querySelector('.content').scrollTop = 0;
+      } else {
+        showScreen('weekly-review');
+      }
+    } else if (action === 'stop-weekly') {
+      showToast('Partial Talk Check saved');
+      showScreen('today');
+    } else if (action === 'voice-daily' || action === 'voice-note' || action === 'voice-care' || action === 'voice-prompt') {
+      const statusId = action === 'voice-daily' ? 'daily-voice-status'
+        : action === 'voice-care' ? 'care-voice-status' : 'note-voice-status';
+      const status = document.getElementById(statusId);
+      actionTarget.classList.add('listening');
+      if (status) status.textContent = 'Listening… speak naturally.';
+      showToast('Voice-to-text listening…');
+      setTimeout(() => {
+        actionTarget.classList.remove('listening');
+        if (status) status.textContent = '✓ Transcript added. Review and edit before saving.';
+        if (action === 'voice-note') document.getElementById('voice-transcript').textContent = 'At dinner, Elle told us about painting a purple flower in art class.';
+        if (action === 'voice-care') document.getElementById('care-transcript').textContent = 'Elle independently told a classmate about her art project and stayed in the conversation for three turns.';
+        if (action === 'voice-prompt') document.getElementById('prompt-transcript').textContent = 'Pretended to hold her teacher’s hand and said, “Help mommy.”';
+      }, 900);
+    } else if (action === 'save-daily') {
       localStorage.setItem('ellesJourneyPreviewDay1', 'saved');
       updateSavedState();
       showToast('Day 1 check-in saved');
       showScreen('today');
     } else if (action === 'save-weekly') {
-      showToast('Weekly sample saved');
+      showToast('Weekly Talk Check saved');
       showScreen('today');
     } else if (action === 'save-care') {
-      showToast('School update saved');
+      const source = document.querySelector('[data-screen="care"] .source-option.on')?.textContent.trim() || 'Care-team';
+      showToast(`${source} update saved`);
       showScreen('today');
     } else if (action === 'save-settings') {
-      showToast('Care schedule saved');
+      localStorage.setItem('ellesJourneySchoolSettings', JSON.stringify({
+        school: document.getElementById('school-name').value.trim(),
+        teacher: document.getElementById('teacher-name').value.trim(),
+        classroom: document.getElementById('class-name').value.trim(),
+        method: document.getElementById('update-method').value
+      }));
+      localStorage.setItem('ellesJourneyTherapySettings', JSON.stringify({
+        clinic: document.getElementById('therapy-clinic').value.trim(),
+        speech: document.getElementById('speech-therapist').value.trim(),
+        ot: document.getElementById('ot-therapist').value.trim(),
+        day: document.getElementById('therapy-day').value,
+        method: document.getElementById('therapy-update-method').value
+      }));
+      updateCarePrefill();
+      showToast('School & care settings saved');
     } else if (action === 'share-report') {
       showToast('The Android app opens a shareable PDF here');
     }
   });
 
+  document.getElementById('history-search').addEventListener('input', applyHistoryFilters);
+  document.getElementById('history-sort').addEventListener('change', event => {
+    const timeline = document.getElementById('history-timeline');
+    const requested = event.target.value;
+    if (timeline.dataset.order === requested) return;
+    [...timeline.children].reverse().forEach(group => timeline.append(group));
+    timeline.dataset.order = requested;
+  });
+
   updateSavedState();
+  loadSchoolSettings();
+  applyHistoryFilters();
+  updatePromptScreen();
+  updatePromptScore();
 </script>
 </body>
 </html>

@@ -22,6 +22,13 @@ final class ReportGenerator {
     private static final int PAGE_HEIGHT = 792;
     private static final float MARGIN = 48;
     private static final DateTimeFormatter FRIENDLY = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM);
+    private static final String[] WEEKLY_PROMPTS = {
+            "Tell me about your day.",
+            "What is one thing you did today?",
+            "Who did you spend time with, and what did you do?",
+            "What was your favorite part? Why?",
+            "Is there anything else you want to tell me?"
+    };
 
     private ReportGenerator() {}
 
@@ -40,7 +47,7 @@ final class ReportGenerator {
             if (inRange(update.date, start, cutoff)) careUpdates.add(update);
         }
         for (TrackerStore.WeeklySample sample : store.getWeeklySamples()) {
-            if (inRange(sample.date, start, cutoff)) weeklySamples.add(sample);
+            if (sample.weekNumber == 0 || inRange(sample.date, start, cutoff)) weeklySamples.add(sample);
         }
 
         PdfDocument document = new PdfDocument();
@@ -91,28 +98,34 @@ final class ReportGenerator {
         int sideEffectDays = 0;
         int bowelLoggedDays = 0;
         int bowelConcernDays = 0;
+        int observedDays = 0;
+        int awayDays = 0;
+        int healthDays = 0;
         float sleepTotal = 0;
-        float responseTotal = 0;
         for (TrackerStore.DailyEntry entry : entries) {
             doses += entry.dosesTakenCount();
+            if (entry.hasRatings) observedDays++;
+            if (entry.isNotObserved()) awayDays++;
             if (entry.hasSideEffects()) sideEffectDays++;
             if (entry.hasBowelData()) bowelLoggedDays++;
             if (entry.bowelPain || entry.bowelUrgency || entry.bowelConsistency <= 2 && entry.bowelConsistency > 0
                     || entry.bowelConsistency >= 6) bowelConcernDays++;
-            sleepTotal += entry.sleepHours;
-            responseTotal += average(entry);
+            if (entry.healthObserved) {
+                sleepTotal += entry.sleepHours;
+                healthDays++;
+            }
         }
 
         float y = 170;
         drawText(canvas, paint, "TRIAL OVERVIEW", MARGIN, y, 10, Ui.MUTED, true);
         y += 17;
         String[] values = {
-                entries.size() + "/" + dayLimit,
+                String.valueOf(observedDays),
                 String.valueOf(doses),
                 String.valueOf(weeklySamples.size()),
-                String.valueOf(careUpdates.size())
+                awayDays + " away"
         };
-        String[] labels = {"Check-ins", "Doses logged", "Weekly reviews", "Care-team notes"};
+        String[] labels = {"Observed days", "Doses logged", "Talk checks", "Not scored"};
         float cardGap = 9;
         float cardWidth = (PAGE_WIDTH - (MARGIN * 2) - (cardGap * 3)) / 4;
         for (int index = 0; index < values.length; index++) {
@@ -152,7 +165,7 @@ final class ReportGenerator {
         paint.setColor(Color.WHITE);
         canvas.drawRoundRect(MARGIN, y, PAGE_WIDTH - MARGIN, y + 76, 12, 12, paint);
         drawText(canvas, paint, "TOLERABILITY & CONTEXT", MARGIN + 13, y + 21, 10, Ui.MUTED, true);
-        String context = "Average sleep " + (entries.isEmpty() ? "—" : oneDecimal(sleepTotal / entries.size()) + "h")
+        String context = "Average sleep " + (healthDays == 0 ? "—" : oneDecimal(sleepTotal / healthDays) + "h")
                 + "   •   Side-effect/change days " + sideEffectDays
                 + "   •   Bowel logged " + bowelLoggedDays + " days"
                 + "   •   Bowel concern days " + bowelConcernDays;
@@ -164,8 +177,27 @@ final class ReportGenerator {
         drawWrapped(canvas, paint, prescribedDoseSummary(profile), MARGIN, y + 18,
                 PAGE_WIDTH - MARGIN, 11, Ui.INK, 16, false);
 
+        TrackerStore.WeeklySample starting = null;
+        TrackerStore.WeeklySample latest = null;
+        for (TrackerStore.WeeklySample sample : weeklySamples) {
+            if (!sample.hasPromptData()) continue;
+            if (sample.weekNumber == 0) starting = sample;
+            else latest = sample;
+        }
+        if (starting != null || latest != null) {
+            y += 48;
+            drawText(canvas, paint, "STANDARDIZED TALK CHECK", MARGIN, y, 10, Ui.MUTED, true);
+            String comparison = starting != null && latest != null
+                    ? "Starting " + oneDecimal(starting.promptScoreAverage()) + "/5 → Week " + latest.weekNumber
+                    + " " + oneDecimal(latest.promptScoreAverage()) + "/5"
+                    : starting != null ? "Starting example " + oneDecimal(starting.promptScoreAverage()) + "/5"
+                    : "Latest Talk Check " + oneDecimal(latest.promptScoreAverage()) + "/5";
+            drawWrapped(canvas, paint, comparison, MARGIN, y + 18, PAGE_WIDTH - MARGIN,
+                    11, Ui.INK, 15, true);
+        }
+
         drawText(canvas, paint,
-                "Caregiver observations and parent-defined ratings only — not a validated clinical scale or proof of cause.",
+                "Observed changes may coincide with the trial; this caregiver tracker is not a validated scale or proof of cause.",
                 MARGIN, PAGE_HEIGHT - 34, 8, Ui.MUTED, false);
         document.finishPage(page);
     }
@@ -198,15 +230,19 @@ final class ReportGenerator {
             paint.setColor(Color.WHITE);
             canvas.drawRoundRect(MARGIN, y, PAGE_WIDTH - MARGIN, y + needed - 8, 10, 10, paint);
             drawText(canvas, paint, FRIENDLY.format(LocalDate.parse(entry.date)), MARGIN + 13, y + 22, 12, Ui.INK, true);
-            String scores = "Communication " + entry.communication
+            String scores = entry.hasRatings
+                    ? "Communication " + entry.communication
                     + (entry.tellsAboutDay >= 0 ? "  •  Tells day " + entry.tellsAboutDay : "")
                     + "  •  Connection " + entry.engagement + "  •  Focus " + entry.focus
-                    + "  •  Mood " + entry.mood + "  •  Appetite " + entry.appetite;
+                    + "  •  Mood " + entry.mood + "  •  Appetite " + entry.appetite
+                    : "No response ratings — " + entry.observationStatus;
             float lineY = drawWrapped(canvas, paint, scores, MARGIN + 13, y + 41,
                     PAGE_WIDTH - MARGIN - 13, 9, Ui.MUTED, 13, false) + 18;
             String medication = entry.hasAnyDose() ? entry.dosesTakenCount() + " dose(s): " + entry.dose
-                    : "No doses marked taken";
-            lineY = drawWrapped(canvas, paint, medication + "  •  Sleep " + oneDecimal(entry.sleepHours) + "h",
+                    : "No dose recorded";
+            medication += " • " + entry.doseConfirmation;
+            String health = entry.healthObserved ? "  •  Sleep " + oneDecimal(entry.sleepHours) + "h" : "  •  Health not observed";
+            lineY = drawWrapped(canvas, paint, medication + health,
                     MARGIN + 13, lineY, PAGE_WIDTH - MARGIN - 13, 9,
                     entry.hasAnyDose() ? Ui.GREEN : Ui.MUTED, 13, true) + 18;
             for (String detail : detailLines) {
@@ -225,6 +261,7 @@ final class ReportGenerator {
 
     private static List<String> dailyDetailLines(TrackerStore.DailyEntry entry) {
         List<String> lines = new ArrayList<>();
+        if (!entry.hasRatings) lines.add("Observation status: " + entry.observationStatus);
         if (entry.hasBowelData()) {
             String count = entry.bowelMovementCount < 0 ? "count not entered" : entry.bowelMovementCount + " movement(s)";
             String consistency = entry.bowelConsistency > 0 ? " • consistency " + entry.bowelConsistency : "";
@@ -235,6 +272,9 @@ final class ReportGenerator {
         if (entry.hasSideEffects()) lines.add("Possible changes: " + effectSummary(entry));
         if (!entry.momentContext.isEmpty()) lines.add("Moment: " + clipped(entry.momentContext));
         if (!entry.exactWords.isEmpty()) lines.add("Exact example: “" + clipped(entry.exactWords) + "”");
+        if (!entry.communicationMode.isEmpty()) lines.add("Communication form: " + entry.communicationMode);
+        if (!entry.caregiverMeaning.isEmpty()) lines.add("Caregiver interpretation: " + clipped(entry.caregiverMeaning));
+        if (entry.eventConfirmed) lines.add("Event could be confirmed by another observer");
         if (!entry.promptsUsed.isEmpty()) lines.add("Prompts/support: " + clipped(entry.promptsUsed));
         if (!entry.observer.isEmpty()) lines.add("Observed by: " + clipped(entry.observer));
         if (!entry.factors.isEmpty()) lines.add("Context that may have affected the day: " + clipped(entry.factors));
@@ -251,7 +291,38 @@ final class ReportGenerator {
         float y = PAGE_HEIGHT;
         int currentPage = pageNumber;
         for (TrackerStore.WeeklySample sample : samples) {
-            float needed = 184 + (sample.note.isEmpty() ? 0 : wrappedHeight(paint, sample.note, 490, 9, 13) + 12);
+            List<String> lines = new ArrayList<>();
+            if (sample.hasPromptData()) {
+                lines.add("Automatic average: " + oneDecimal(sample.promptScoreAverage()) + "/5"
+                        + " • " + sample.recordedPromptCount() + "/5 questions recorded"
+                        + " • " + sample.totalPromptDetails() + " details"
+                        + " • " + sample.conversationTurns + " back-and-forth turns"
+                        + " • " + sample.setting);
+                for (int index = 0; index < sample.promptResponses.size(); index++) {
+                    TrackerStore.PromptResponse response = sample.promptResponses.get(index);
+                    if (!response.recorded) continue;
+                    String exact = response.exactWords.isEmpty() ? "no exact words saved" : "“" + clipped(response.exactWords) + "”";
+                    lines.add("Q" + (index + 1) + " " + response.score() + "/5 • " + WEEKLY_PROMPTS[index]
+                            + " • " + exact + " • " + response.communicationMode);
+                    if (!response.caregiverMeaning.isEmpty()) {
+                        lines.add("Caregiver thought Elle meant: " + clipped(response.caregiverMeaning)
+                                + (response.eventConfirmed ? " • event confirmed" : ""));
+                    }
+                }
+                lines.add("Extra help: " + emptyAsDash(sample.extraSupport));
+            } else {
+                lines.add("Earlier weekly ratings: starts " + sample.startsCommunication + " • turns " + sample.backAndForth
+                        + " • small talk " + sample.smallTalk + " • tells day " + sample.tellsAboutDay
+                        + " • open questions " + sample.openQuestions + " • follow-up " + sample.followUpQuestions);
+                lines.add("Observed counts: " + sample.detailCount + " details • " + sample.conversationTurns + " turns");
+                lines.add("Extra support: " + emptyAsDash(sample.extraSupport));
+            }
+            if (!sample.interruptionReason.isEmpty()) lines.add("Stopped early: " + sample.interruptionReason);
+            if (!sample.note.isEmpty()) lines.add("Note: " + clipped(sample.note));
+            lines.add(sample.videoRecorded ? "Video marker saved; file not embedded" : "No video marker");
+            float needed = 62;
+            for (String line : lines) needed += wrappedHeight(paint, line, 490, 9, 13) + 7;
+            needed = Math.min(needed, 620);
             if (page == null || y + needed > PAGE_HEIGHT - 54) {
                 if (page != null) {
                     footer(canvas, paint, profile.childName, label, currentPage - 1);
@@ -259,33 +330,21 @@ final class ReportGenerator {
                 }
                 page = newPage(document, currentPage++);
                 canvas = page.getCanvas();
-                drawText(canvas, paint, "Weekly communication reviews", MARGIN, 56, 21, Ui.INK, true);
-                drawText(canvas, paint, "Parent-defined ratings plus standardized prompt observations", MARGIN, 79, 10, Ui.MUTED, false);
+                drawText(canvas, paint, "Weekly Talk Checks", MARGIN, 56, 21, Ui.INK, true);
+                drawText(canvas, paint, "Same five questions, 10-second wait, and automatic support-adjusted scores", MARGIN, 79, 10, Ui.MUTED, false);
                 y = 101;
             }
             paint.setColor(Color.WHITE);
             canvas.drawRoundRect(MARGIN, y, PAGE_WIDTH - MARGIN, y + needed - 8, 10, 10, paint);
-            drawText(canvas, paint, "Week " + sample.weekNumber + " • " + FRIENDLY.format(LocalDate.parse(sample.date)),
+            String sampleName = sample.weekNumber == 0 ? "Starting example" : "Week " + sample.weekNumber;
+            drawText(canvas, paint, sampleName + " • " + FRIENDLY.format(LocalDate.parse(sample.date)),
                     MARGIN + 13, y + 22, 12, Ui.INK, true);
-            drawWrapped(canvas, paint,
-                    "Starts " + sample.startsCommunication + "  •  Turns " + sample.backAndForth
-                            + "  •  Small talk " + sample.smallTalk + "  •  Tells day " + sample.tellsAboutDay
-                            + "  •  Open questions " + sample.openQuestions + "  •  Follow-up " + sample.followUpQuestions,
-                    MARGIN + 13, y + 43, PAGE_WIDTH - MARGIN - 13, 9, Ui.MUTED, 13, false);
-            drawWrapped(canvas, paint,
-                    "Fixed sample: " + (sample.completed ? "completed" : "not completed")
-                            + "  •  " + sample.detailCount + " details  •  " + sample.conversationTurns + " turns"
-                            + (sample.usedFeelingWord ? "  •  feeling word" : "")
-                            + (sample.askedFollowUp ? "  •  follow-up question" : ""),
-                    MARGIN + 13, y + 82, PAGE_WIDTH - MARGIN - 13, 9, Ui.INK, 13, true);
-            float lineY = drawWrapped(canvas, paint, "Extra support: " + emptyAsDash(sample.extraSupport),
-                    MARGIN + 13, y + 112, PAGE_WIDTH - MARGIN - 13, 9, Ui.INK, 13, false) + 18;
-            drawText(canvas, paint, sample.videoRecorded ? "Video example recorded; file not embedded" : "No video marker",
-                    MARGIN + 13, lineY, 9, sample.videoRecorded ? Ui.GREEN : Ui.MUTED, true);
-            lineY += 19;
-            if (!sample.note.isEmpty()) {
-                drawWrapped(canvas, paint, "Note: " + clipped(sample.note), MARGIN + 13, lineY,
-                        PAGE_WIDTH - MARGIN - 13, 9, Ui.INK, 13, false);
+            float lineY = y + 44;
+            for (String line : lines) {
+                int color = line.startsWith("Automatic") ? Ui.PURPLE : line.startsWith("Video") ? Ui.GREEN : Ui.INK;
+                lineY = drawWrapped(canvas, paint, line, MARGIN + 13, lineY,
+                        PAGE_WIDTH - MARGIN - 13, 9, color, 13, line.startsWith("Automatic")) + 7;
+                if (lineY > y + needed - 16) break;
             }
             y += needed;
         }
@@ -356,6 +415,8 @@ final class ReportGenerator {
 
     private static void drawTrend(Canvas canvas, Paint paint, List<TrackerStore.DailyEntry> entries,
                                   float left, float top, float right, float bottom) {
+        List<TrackerStore.DailyEntry> ratedEntries = new ArrayList<>();
+        for (TrackerStore.DailyEntry entry : entries) if (entry.hasRatings) ratedEntries.add(entry);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(1);
         paint.setColor(Color.rgb(221, 219, 225));
@@ -363,24 +424,24 @@ final class ReportGenerator {
             float y = bottom - (score / 5f) * (bottom - top);
             canvas.drawLine(left + 22, y, right, y, paint);
         }
-        if (entries.size() > 1) {
+        if (ratedEntries.size() > 1) {
             Path path = new Path();
-            for (int index = 0; index < entries.size(); index++) {
-                float x = left + 22 + (index / (float) (entries.size() - 1)) * (right - left - 22);
-                float y = bottom - (average(entries.get(index)) / 5f) * (bottom - top);
+            for (int index = 0; index < ratedEntries.size(); index++) {
+                float x = left + 22 + (index / (float) (ratedEntries.size() - 1)) * (right - left - 22);
+                float y = bottom - (average(ratedEntries.get(index)) / 5f) * (bottom - top);
                 if (index == 0) path.moveTo(x, y); else path.lineTo(x, y);
             }
             paint.setColor(Ui.PURPLE);
             paint.setStrokeWidth(3);
             canvas.drawPath(path, paint);
-        } else if (entries.size() == 1) {
+        } else if (ratedEntries.size() == 1) {
             paint.setColor(Ui.PURPLE);
             paint.setStyle(Paint.Style.FILL);
             canvas.drawCircle((left + right) / 2,
-                    bottom - (average(entries.get(0)) / 5f) * (bottom - top), 4, paint);
+                    bottom - (average(ratedEntries.get(0)) / 5f) * (bottom - top), 4, paint);
         }
         paint.setStyle(Paint.Style.FILL);
-        drawText(canvas, paint, entries.isEmpty() ? "No daily data yet" : "Each point is one daily check-in",
+        drawText(canvas, paint, ratedEntries.isEmpty() ? "No observed response ratings yet" : "Each point is an observed daily check-in",
                 left + 22, bottom + 16, 8, Ui.MUTED, false);
     }
 
@@ -393,7 +454,10 @@ final class ReportGenerator {
         if (entries.isEmpty()) return values;
         float[] totals = new float[6];
         int tellDayCount = 0;
+        int ratedCount = 0;
         for (TrackerStore.DailyEntry entry : entries) {
+            if (!entry.hasRatings) continue;
+            ratedCount++;
             totals[0] += entry.communication;
             if (entry.tellsAboutDay >= 0) {
                 totals[1] += entry.tellsAboutDay;
@@ -404,9 +468,10 @@ final class ReportGenerator {
             totals[4] += entry.mood;
             totals[5] += entry.appetite;
         }
-        values[0] = totals[0] / entries.size();
+        if (ratedCount == 0) return values;
+        values[0] = totals[0] / ratedCount;
         values[1] = tellDayCount == 0 ? -1 : totals[1] / tellDayCount;
-        for (int index = 2; index < values.length; index++) values[index] = totals[index] / entries.size();
+        for (int index = 2; index < values.length; index++) values[index] = totals[index] / ratedCount;
         return values;
     }
 

@@ -8,16 +8,22 @@ import android.content.res.ColorStateList;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.speech.RecognizerIntent;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -39,14 +45,42 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final int IMPORT_BACKUP_REQUEST = 4102;
     private static final int VOICE_TRANSCRIPTION_REQUEST = 4103;
     private static final int VIDEO_CAPTURE_REQUEST = 4104;
+    private static final String[] WEEKLY_PROMPTS = {
+            "Elle, tell me about your day.",
+            "What is one thing you did today?",
+            "Who did you spend time with, and what did you do?",
+            "What was your favorite part? Why?",
+            "Is there anything else you want to tell me?"
+    };
+    private static final String[] RESPONSE_CHOICES = {
+            "No response, or the response was not about the question",
+            "Yes/no, one word, or a copied phrase",
+            "Shared one real detail",
+            "Shared two or more connected details",
+            "Shared a short story, added more, or asked a question"
+    };
+    private static final String[] SUPPORT_CHOICES = {
+            "Only the set question — no extra help",
+            "Repeated the set question",
+            "Asked a more specific question",
+            "Gave choices",
+            "Gave words for Elle to copy"
+    };
+    private static final String[] COMMUNICATION_CHOICES = {
+            "Spoken words", "Gesture or acting", "AAC or device", "Words plus gesture/acting", "Other"
+    };
     private final DateTimeFormatter friendlyDate = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM);
     private TrackerStore store;
     private SecureSettings secureSettings;
@@ -126,8 +160,58 @@ public class MainActivity extends Activity {
         schedule.addView(setupMondaySchool);
         schedule.addView(setupTuesdaySchool);
         schedule.addView(setupWednesdayTheraplay);
-        schedule.addView(Ui.text(this, "Thursday and Friday remain home days with the normal daily check-in.", 12, Ui.MUTED));
+        schedule.addView(Ui.text(this,
+                "Tuesday after school is the main Weekly Talk Check. Wednesday after Speech/OT is the backup. Thursday and Friday can be health-only home days.",
+                12, Ui.MUTED));
         page.addView(schedule);
+
+        LinearLayout school = Ui.card(this);
+        school.addView(cardHeader("School", "School and teacher", "Enter this once to make Tamika’s updates easier"));
+        EditText setupSchoolName = Ui.input(this, "School name");
+        EditText setupTeacherName = Ui.input(this, "Primary teacher");
+        EditText setupClassName = Ui.input(this, "Class or grade");
+        Spinner setupSchoolMethod = simpleSpinner(new String[]{
+                "In person at pickup", "Teacher message or app", "Email", "Phone call", "Written daily note"
+        }, 0);
+        school.addView(setupSchoolName);
+        school.addView(setupTeacherName);
+        school.addView(setupClassName);
+        school.addView(Ui.text(this, "HOW THE UPDATE USUALLY ARRIVES", 10, Ui.MUTED));
+        school.addView(setupSchoolMethod);
+        page.addView(school);
+
+        LinearLayout therapy = Ui.card(this);
+        therapy.addView(cardHeader("Speech", "Theraplay Speech and OT", "Provider names stay attached to their notes"));
+        EditText setupTherapyClinic = Ui.input(this, "Clinic or provider");
+        setupTherapyClinic.setText("Theraplay");
+        EditText setupSpeechTherapist = Ui.input(this, "Speech therapist");
+        EditText setupOtTherapist = Ui.input(this, "OT therapist");
+        Spinner setupTherapyMethod = simpleSpinner(new String[]{
+                "In person after session", "Clinician message or app", "Email", "Phone call", "Written session note"
+        }, 0);
+        therapy.addView(setupTherapyClinic);
+        therapy.addView(setupSpeechTherapist);
+        therapy.addView(setupOtTherapist);
+        therapy.addView(Ui.text(this, "HOW THE UPDATE USUALLY ARRIVES", 10, Ui.MUTED));
+        therapy.addView(setupTherapyMethod);
+        page.addView(therapy);
+
+        final LocalDate[] selectedAwayFriday = {nextFriday(LocalDate.now())};
+        LinearLayout away = Ui.card(this);
+        away.addView(cardHeader("Schedule", "Every-other-weekend schedule", "Away days are never counted as low scores or missed observations"));
+        CheckBox setupAwayWeekends = checkbox("Elle is away every other weekend", true);
+        Button awayFriday = Ui.secondaryButton(this,
+                "First away Friday: " + friendlyDate.format(selectedAwayFriday[0]));
+        awayFriday.setOnClickListener(view -> pickDate(selectedAwayFriday[0], date -> {
+            selectedAwayFriday[0] = date;
+            awayFriday.setText("First away Friday: " + friendlyDate.format(date));
+        }));
+        away.addView(setupAwayWeekends);
+        away.addView(awayFriday);
+        away.addView(Ui.text(this,
+                "The app treats Friday through Sunday as an away period. You can still log medication confirmed by another caregiver.",
+                12, Ui.MUTED));
+        page.addView(away);
 
         LinearLayout notice = Ui.card(this);
         notice.setBackground(Ui.background(Ui.MINT, 18, this));
@@ -154,6 +238,18 @@ public class MainActivity extends Activity {
             profile.schoolTuesday = setupTuesdaySchool.isChecked();
             profile.theraplayWednesday = setupWednesdayTheraplay.isChecked();
             profile.weeklySampleDay = DayOfWeek.TUESDAY.getValue();
+            profile.weeklyBackupDay = DayOfWeek.WEDNESDAY.getValue();
+            profile.schoolName = setupSchoolName.getText().toString().trim();
+            profile.teacherName = setupTeacherName.getText().toString().trim();
+            profile.className = setupClassName.getText().toString().trim();
+            profile.schoolUpdateMethod = String.valueOf(setupSchoolMethod.getSelectedItem());
+            profile.therapyClinic = setupTherapyClinic.getText().toString().trim();
+            profile.speechTherapist = setupSpeechTherapist.getText().toString().trim();
+            profile.otTherapist = setupOtTherapist.getText().toString().trim();
+            profile.therapyUpdateMethod = String.valueOf(setupTherapyMethod.getSelectedItem());
+            profile.awayWeekendsEnabled = setupAwayWeekends.isChecked();
+            profile.awayWeekendAnchor = selectedAwayFriday[0].toString();
+            profile.awayWeekendLabel = "Away with grandmother";
             store.saveProfile(profile);
             showApp("Today");
         });
@@ -194,13 +290,13 @@ public class MainActivity extends Activity {
 
     private void renderNav() {
         nav.removeAllViews();
-        addNavItem("⌂", "Today");
-        addNavItem("▦", "History");
-        addNavItem("▥", "Reports");
-        addNavItem("⚙", "Settings");
+        addNavItem("Today");
+        addNavItem("History");
+        addNavItem("Reports");
+        addNavItem("Settings");
     }
 
-    private void addNavItem(String icon, String label) {
+    private void addNavItem(String label) {
         boolean selected = label.equals(activeTab);
         LinearLayout item = Ui.vertical(this);
         item.setGravity(Gravity.CENTER);
@@ -210,9 +306,10 @@ public class MainActivity extends Activity {
         item.setFocusable(true);
         item.setContentDescription(label + " tab" + (selected ? ", selected" : ""));
 
-        TextView iconView = Ui.text(this, icon, 22, selected ? Ui.PURPLE : Ui.INK);
-        iconView.setGravity(Gravity.CENTER);
-        iconView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        ImageView iconView = new ImageView(this);
+        iconView.setImageResource(navIconFor(label));
+        iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        iconView.setContentDescription("");
         item.addView(iconView, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
@@ -248,8 +345,7 @@ public class MainActivity extends Activity {
         words.addView(Ui.title(this, title));
         words.addView(Ui.text(this, subtitle, 15, Ui.MUTED));
         row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        TextView badge = Ui.text(this, icon, 25, Ui.PURPLE);
-        badge.setGravity(Gravity.CENTER);
+        ImageView badge = artImage(iconResourceFor(title + " " + subtitle + " " + icon), 50);
         badge.setBackground(Ui.background(Ui.LAVENDER, 17, this));
         row.addView(badge, new LinearLayout.LayoutParams(Ui.dp(this, 50), Ui.dp(this, 50)));
         Ui.setMargins(row, 0, 0, 0, 20);
@@ -266,8 +362,7 @@ public class MainActivity extends Activity {
         words.addView(Ui.title(this, title));
         words.addView(Ui.text(this, subtitle, 15, Ui.MUTED));
         row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        TextView badge = Ui.text(this, icon, 23, Ui.PURPLE);
-        badge.setGravity(Gravity.CENTER);
+        ImageView badge = artImage(R.drawable.nav_today_3d, 48);
         badge.setBackground(Ui.borderedBackground(Ui.LAVENDER, 0xFFDFD9FF, 16, this));
         row.addView(badge, new LinearLayout.LayoutParams(Ui.dp(this, 48), Ui.dp(this, 48)));
         Ui.setMargins(row, 0, 0, 0, 18);
@@ -276,9 +371,7 @@ public class MainActivity extends Activity {
 
     private LinearLayout cardHeader(String iconText, String title, String subtitle) {
         LinearLayout row = Ui.horizontal(this);
-        TextView icon = Ui.text(this, iconText, iconText.length() > 1 ? 16 : 20, Ui.PURPLE);
-        icon.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        icon.setGravity(Gravity.CENTER);
+        ImageView icon = artImage(iconResourceFor(iconText + " " + title + " " + subtitle), 42);
         icon.setBackground(Ui.background(Ui.LAVENDER, 13, this));
         row.addView(icon, new LinearLayout.LayoutParams(Ui.dp(this, 42), Ui.dp(this, 42)));
         LinearLayout words = Ui.vertical(this);
@@ -288,6 +381,39 @@ public class MainActivity extends Activity {
         row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         Ui.setMargins(row, 0, 0, 0, 12);
         return row;
+    }
+
+    private ImageView artImage(int resource, int sizeDp) {
+        ImageView image = new ImageView(this);
+        image.setImageResource(resource);
+        image.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        image.setPadding(Ui.dp(this, 2), Ui.dp(this, 2), Ui.dp(this, 2), Ui.dp(this, 2));
+        image.setContentDescription("");
+        image.setMinimumWidth(Ui.dp(this, sizeDp));
+        image.setMinimumHeight(Ui.dp(this, sizeDp));
+        return image;
+    }
+
+    private int navIconFor(String label) {
+        if ("History".equals(label)) return R.drawable.nav_history_3d;
+        if ("Reports".equals(label)) return R.drawable.nav_reports_3d;
+        if ("Settings".equals(label)) return R.drawable.nav_settings_3d;
+        return R.drawable.nav_today_3d;
+    }
+
+    private int iconResourceFor(String hint) {
+        String value = hint.toLowerCase(Locale.US);
+        if (value.contains("voice") || value.contains("dictat") || value.contains("microphone")) return R.drawable.feature_voice_3d;
+        if (value.contains("school") || value.contains("teacher") || value.contains("speech")
+                || value.contains("therapy") || value.contains("theraplay") || value.contains("care-team")) return R.drawable.feature_school_3d;
+        if (value.contains("sleep") || value.contains("bowel") || value.contains("health") || value.contains("comfort")) return R.drawable.feature_sleep_3d;
+        if (value.contains("dose") || value.contains("leucovorin") || value.contains("medication") || value.contains("rx")) return R.drawable.feature_medicine_3d;
+        if (value.contains("video")) return R.drawable.feature_video_3d;
+        if (value.contains("report")) return R.drawable.nav_reports_3d;
+        if (value.contains("history")) return R.drawable.nav_history_3d;
+        if (value.contains("setting") || value.contains("profile") || value.contains("schedule")) return R.drawable.nav_settings_3d;
+        if (value.contains("note") || value.contains("example") || value.contains("moment")) return R.drawable.feature_notes_3d;
+        return R.drawable.feature_communication_3d;
     }
 
     private String greeting() {
@@ -357,6 +483,8 @@ public class MainActivity extends Activity {
         LinearLayout page = page(scroll);
         TrackerStore.Profile profile = store.getProfile();
         LocalDate today = LocalDate.now();
+        TrackerStore.DailyEntry todayEntry = store.getEntry(today.toString());
+        boolean scheduledAway = profile.isScheduledAway(today);
         addTodayHeader(page, greeting(), friendlyDate.format(today), "🌿");
 
         LinearLayout progressCard = Ui.card(this);
@@ -376,14 +504,51 @@ public class MainActivity extends Activity {
         Ui.setMargins(bar, 0, 12, 0, 6);
         progressCard.addView(bar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(this, 8)));
-        TextView count = Ui.text(this, store.getEntries().size() + " check-ins completed • "
-                + Math.round(store.currentDay() / 84f * 100) + "% of trial", 13, 0xE6FFFFFF);
+        int ratedDays = 0;
+        int awayDays = 0;
+        for (TrackerStore.DailyEntry entry : store.getEntries()) {
+            if (entry.hasRatings) ratedDays++;
+            else if (entry.isNotObserved()) awayDays++;
+        }
+        String dayContext = scheduledAway ? profile.awayWeekendLabel + " • no full check-in expected"
+                : today.getDayOfWeek() == DayOfWeek.TUESDAY ? "School today • Weekly Talk Check after school"
+                : today.getDayOfWeek() == DayOfWeek.WEDNESDAY ? "Speech/OT today • backup Talk Check day"
+                : "Observed check-ins " + ratedDays + (awayDays > 0 ? " • " + awayDays + " away day(s)" : "");
+        TextView count = Ui.text(this, dayContext, 13, 0xE6FFFFFF);
         progressCard.addView(count);
         page.addView(progressCard);
 
-        TrackerStore.DailyEntry todayEntry = store.getEntry(today.toString());
+        if (scheduledAway) {
+            LinearLayout away = Ui.card(this);
+            away.setBackground(Ui.background(Ui.PEACH, 20, this));
+            away.addView(cardHeader("Schedule", profile.awayWeekendLabel,
+                    "No communication score is expected while Elle is not with you"));
+            away.addView(Ui.text(this,
+                    "Only enter information you know. A dose reported by another caregiver can be marked “Confirmed by caregiver.” If you do not know, choose “Not confirmed.”",
+                    13, 0xFF98611C));
+            Button awayButton = Ui.secondaryButton(this,
+                    todayEntry != null && todayEntry.isNotObserved() ? "Update today’s reported information" : "Mark today not observed");
+            awayButton.setOnClickListener(view -> {
+                TrackerStore.DailyEntry entry = store.getEntry(today.toString());
+                boolean newEntry = entry == null;
+                if (newEntry) entry = new TrackerStore.DailyEntry();
+                entry.date = today.toString();
+                entry.observationStatus = "Away / not observed";
+                entry.hasRatings = false;
+                if (newEntry) {
+                    entry.healthObserved = false;
+                    entry.doseConfirmation = "Not confirmed";
+                }
+                store.saveEntry(entry);
+                showEntryEditor(today);
+            });
+            away.addView(awayButton);
+            page.addView(away);
+        }
+
         LinearLayout medication = Ui.card(this);
-        medication.addView(cardHeader("Rx", "Leucovorin", "Today’s medication"));
+        medication.addView(cardHeader("Rx", "Leucovorin",
+                scheduledAway ? "Log only what you observed or another caregiver confirmed" : "Today’s medication"));
         if (hasStructuredDose(profile)) {
             LinearLayout prescribed = Ui.horizontal(this);
             LinearLayout details = Ui.vertical(this);
@@ -424,12 +589,18 @@ public class MainActivity extends Activity {
         page.addView(medication);
 
         LinearLayout checkin = Ui.card(this);
-        checkin.addView(cardHeader("5", todayEntry == null ? "Daily response check-in" : "Today’s response is logged",
-                "Communication, engagement, focus, mood and appetite • 0–5"));
-        Button log = Ui.primaryButton(this, todayEntry == null ? "Start daily check-in" : "Edit today’s check-in");
+        boolean homeDay = today.getDayOfWeek() == DayOfWeek.THURSDAY || today.getDayOfWeek() == DayOfWeek.FRIDAY;
+        String checkinTitle = scheduledAway ? "No full check-in needed today"
+                : todayEntry == null ? "Daily response check-in" : todayEntry.hasRatings
+                ? "Today’s response is logged" : "Health-only day is logged";
+        String checkinHelp = scheduledAway ? "Away days never become zero scores"
+                : homeDay ? "A medication and health-only entry is okay on a quiet home day"
+                : "Communication, connection, focus, mood and appetite • 0–5";
+        checkin.addView(cardHeader("5", checkinTitle, checkinHelp));
+        Button log = Ui.primaryButton(this, todayEntry == null ? "Start today’s entry" : "Edit today’s entry");
         log.setOnClickListener(view -> showEntryEditor(today));
         checkin.addView(log);
-        if (todayEntry != null) {
+        if (todayEntry != null && todayEntry.hasRatings) {
             LinearLayout quick = Ui.horizontal(this);
             quick.addView(statusPill("Response " + trimFloat(responseAverage(todayEntry)) + "/5", Ui.LAVENDER, Ui.PURPLE),
                     new LinearLayout.LayoutParams(0, Ui.dp(this, 48), 1));
@@ -468,13 +639,30 @@ public class MainActivity extends Activity {
         TrackerStore.WeeklySample weeklySample = store.getWeeklySample(store.currentWeek());
         LinearLayout weekly = Ui.card(this);
         boolean sampleDay = dayOfWeek.getValue() == profile.weeklySampleDay;
-        weekly.addView(cardHeader("💬", weeklySample == null ? "Weekly communication review" : "Week "
-                        + store.currentWeek() + " communication review saved",
-                sampleDay ? "Today: use the fixed school-day prompts" : "Small talk, telling about her day and support needed"));
-        Button weeklyButton = Ui.secondaryButton(this, weeklySample == null ? "Start weekly review" : "Review weekly entry");
+        boolean backupSampleDay = dayOfWeek.getValue() == profile.weeklyBackupDay;
+        String weeklyHelp = sampleDay ? "Today is the preferred day: after school"
+                : backupSampleDay ? "Use today after Speech/OT only if Tuesday was missed"
+                : "Best on Tuesday after school; Wednesday is the backup";
+        weekly.addView(cardHeader("Talk", weeklySample == null ? "Weekly Talk Check" : "Week "
+                        + store.currentWeek() + " Talk Check saved", weeklyHelp));
+        Button weeklyButton = Ui.secondaryButton(this, weeklySample == null ? "Start Weekly Talk Check" : "Review Weekly Talk Check");
         weeklyButton.setOnClickListener(view -> showWeeklySampleEditor(store.currentWeek()));
         weekly.addView(weeklyButton);
         page.addView(weekly);
+
+        TrackerStore.WeeklySample baseline = store.getWeeklySample(0);
+        if (baseline == null) {
+            LinearLayout startingPoint = Ui.card(this);
+            startingPoint.addView(cardHeader("Talk", "Save Elle’s starting example",
+                    "Use last week’s first tell-us-about-your-day moment as the comparison point"));
+            startingPoint.addView(Ui.text(this,
+                    "Enter the hand-holding reenactment and Elle’s exact words, “Help mommy.” The report will label it by date and will not assume the medication caused it.",
+                    13, Ui.MUTED));
+            Button addStartingPoint = Ui.secondaryButton(this, "Add starting example");
+            addStartingPoint.setOnClickListener(view -> showWeeklySampleEditor(0));
+            startingPoint.addView(addStartingPoint);
+            page.addView(startingPoint);
+        }
 
         page.addView(Ui.section(this, "Next milestone"));
         LinearLayout report = Ui.card(this);
@@ -520,6 +708,20 @@ public class MainActivity extends Activity {
         addHeader(page, "Daily check-in", "Step 1 of 3 • " + friendlyDate.format(date) + " • Day " + dayNumber, "1");
         TrackerStore.Profile profile = store.getProfile();
 
+        LinearLayout observation = Ui.card(this);
+        observation.addView(cardHeader("Notes", "How much could you observe today?",
+                "Away and health-only days are not given communication scores"));
+        String[] observationChoices = {
+                "Observed enough to rate", "Partial / health only", "Away / not observed"
+        };
+        Spinner observationStatus = simpleSpinner(observationChoices,
+                choiceIndex(observationChoices, entry.observationStatus));
+        observation.addView(observationStatus);
+        observation.addView(Ui.text(this,
+                "Choose “Away / not observed” when Elle is with her grandmother. Choose “Partial / health only” on a quiet home day when there was not enough interaction to rate.",
+                12, Ui.MUTED));
+        page.addView(observation);
+
         LinearLayout medicine = Ui.card(this);
         medicine.addView(cardHeader("Rx", "Leucovorin doses",
                 hasStructuredDose(profile) ? "Prescribed: " + prescribedDoseSummary(profile)
@@ -538,33 +740,43 @@ public class MainActivity extends Activity {
             medicine.addView(secondDoseTaken);
             medicine.addView(secondDose);
         }
+        medicine.addView(Ui.text(this, "HOW DO YOU KNOW ABOUT THE DOSE?", 10, Ui.MUTED));
+        String[] confirmationChoices = {"Observed by us", "Confirmed by caregiver", "Not given / missed", "Not confirmed"};
+        Spinner doseConfirmation = simpleSpinner(confirmationChoices,
+                choiceIndex(confirmationChoices, entry.doseConfirmation));
+        medicine.addView(doseConfirmation);
+        medicine.addView(Ui.text(this,
+                "Not confirmed does not mean missed. It means you do not know.", 12, Ui.MUTED));
         page.addView(medicine);
 
+        LinearLayout ratingsSection = Ui.vertical(this);
         LinearLayout baseline = Ui.card(this);
         baseline.setBackground(Ui.background(Ui.LAVENDER, 18, this));
         baseline.addView(Ui.heading(this, "Use 3 for Elle’s usual baseline"));
         baseline.addView(Ui.text(this,
                 "0 much lower • 1 lower • 2 slightly lower • 3 usual • 4 clearly higher • 5 exceptional for Elle",
                 12, Ui.PURPLE));
-        page.addView(baseline);
+        ratingsSection.addView(baseline);
 
-        RatingPicker communication = ratingCard(page, "Communication", "Sharing needs, ideas or experiences",
+        RatingPicker communication = ratingCard(ratingsSection, "Communication", "Sharing needs, ideas or experiences",
                 "Notice words, AAC, gestures, clearer meaning and attempts to tell or ask—not whether speech was perfect.",
                 entry.communication);
-        RatingPicker tellsAboutDay = ratingCard(page, "Tells us about her day", "Elle’s main conversation goal",
-                "0 unable today • 1 single word/yes-no with full help • 2 one detail with direct prompts • "
-                        + "3 two or three details with several prompts • 4 a sequence with light prompting • "
-                        + "5 a coherent short story mostly independently.",
-                entry.tellsAboutDay < 0 ? 3 : entry.tellsAboutDay);
-        RatingPicker engagement = ratingCard(page, "Social connection", "Seeks, responds and shares attention",
+        RatingPicker engagement = ratingCard(ratingsSection, "Social connection", "Seeks, responds and shares attention",
                 "Look for responding to people, seeking interaction, sharing attention or enjoying a moment together.",
                 entry.engagement);
-        RatingPicker focus = ratingCard(page, "Focus & participation", "Stays with an activity or instruction",
+        RatingPicker focus = ratingCard(ratingsSection, "Focus & participation", "Stays with an activity or instruction",
                 "Compare how she joins, follows along and stays engaged with her own usual ability.", entry.focus);
-        RatingPicker mood = ratingCard(page, "Mood & regulation", "Comfort, flexibility and recovery",
+        RatingPicker mood = ratingCard(ratingsSection, "Mood & regulation", "Comfort, flexibility and recovery",
                 "Rate comfort and recovery after frustration—not good versus bad behavior.", entry.mood);
-        RatingPicker appetite = ratingCard(page, "Appetite", "Amount eaten compared with usual",
+        RatingPicker appetite = ratingCard(ratingsSection, "Appetite", "Amount eaten compared with usual",
                 "Consider illness, unfamiliar foods and schedule changes when the amount differs.", entry.appetite);
+        page.addView(ratingsSection);
+        observationStatus.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                ratingsSection.setVisibility(position == 0 ? View.VISIBLE : View.GONE);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
 
         Button continueButton = Ui.primaryButton(this, "Continue to health & bowel");
         continueButton.setOnClickListener(view -> {
@@ -576,11 +788,19 @@ public class MainActivity extends Activity {
             entry.eveningDose = showSecondDose ? secondDose.getText().toString().trim() : "";
             entry.doseTaken = entry.morningDoseTaken || entry.eveningDoseTaken;
             entry.dose = dailyEntryDoseSummary(entry, profile.doseUnit);
+            entry.doseConfirmation = String.valueOf(doseConfirmation.getSelectedItem());
+            if (doseConfirmation.getSelectedItemPosition() >= 2) {
+                entry.morningDoseTaken = false;
+                entry.eveningDoseTaken = false;
+                entry.doseTaken = false;
+                entry.dose = "";
+            }
+            entry.observationStatus = String.valueOf(observationStatus.getSelectedItem());
+            entry.hasRatings = observationStatus.getSelectedItemPosition() == 0;
             String timeNow = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"));
             if (entry.morningDoseTaken && !wasFirstTaken && entry.morningDoseTime.isEmpty()) entry.morningDoseTime = timeNow;
             if (entry.eveningDoseTaken && !wasSecondTaken && entry.eveningDoseTime.isEmpty()) entry.eveningDoseTime = timeNow;
             entry.communication = communication.value;
-            entry.tellsAboutDay = tellsAboutDay.value;
             entry.engagement = engagement.value;
             entry.focus = focus.value;
             entry.mood = mood.value;
@@ -602,6 +822,8 @@ public class MainActivity extends Activity {
         addHeader(page, "Health & comfort", "Step 2 of 3 • " + friendlyDate.format(date), "2");
 
         LinearLayout sleepCard = Ui.card(this);
+        CheckBox healthObserved = checkbox("We know enough to record health details", entry.healthObserved);
+        sleepCard.addView(healthObserved);
         TextView sleepValue = Ui.heading(this, "Sleep: " + trimFloat(entry.sleepHours) + " hours");
         sleepCard.addView(sleepValue);
         sleepCard.addView(Ui.text(this,
@@ -657,6 +879,7 @@ public class MainActivity extends Activity {
         Button continueButton = Ui.primaryButton(this, "Continue to notes");
         continueButton.setOnClickListener(view -> {
             entry.sleepHours = sleep.getProgress() / 4f;
+            entry.healthObserved = healthObserved.isChecked();
             entry.sleepChange = sleepChange.isChecked();
             entry.tummyUpset = tummyUpset.isChecked();
             entry.headache = headache.isChecked();
@@ -687,13 +910,31 @@ public class MainActivity extends Activity {
         moment.addView(cardHeader("✎", "Communication moment", "Concrete examples make the report more useful"));
         EditText context = multilineInput("What happened and where?", entry.momentContext, 74);
         EditText exactWords = multilineInput("Elle’s exact words or communication example", entry.exactWords, 74);
+        Spinner communicationMode = simpleSpinner(COMMUNICATION_CHOICES,
+                choiceIndex(COMMUNICATION_CHOICES, entry.communicationMode));
+        EditText caregiverMeaning = multilineInput("What do you think Elle was telling you? Leave blank if unsure.",
+                entry.caregiverMeaning, 72);
+        CheckBox eventConfirmed = checkbox("Someone could confirm this was a real event", entry.eventConfirmed);
         EditText prompts = multilineInput("What help or prompts were given?", entry.promptsUsed, 74);
         EditText observer = Ui.input(this, "Who observed it?");
         observer.setText(entry.observer.isEmpty() ? "Tamika" : entry.observer);
+        Button dictateContext = Ui.primaryButton(this, "Speak this moment into the phone");
+        dictateContext.setOnClickListener(view -> startVoiceTranscription(context));
+        moment.addView(dictateContext);
         moment.addView(context);
         moment.addView(exactWords);
+        Button dictateWords = Ui.secondaryButton(this, "Speak Elle’s exact words");
+        dictateWords.setOnClickListener(view -> startVoiceTranscription(exactWords));
+        moment.addView(dictateWords);
+        moment.addView(Ui.text(this, "HOW DID ELLE COMMUNICATE?", 10, Ui.MUTED));
+        moment.addView(communicationMode);
+        moment.addView(caregiverMeaning);
+        moment.addView(eventConfirmed);
         moment.addView(prompts);
         moment.addView(observer);
+        moment.addView(Ui.text(this,
+                "Gestures, acting, AAC and remembered phrases count. Save exactly what happened and choose “I’m not sure” by leaving the meaning blank.",
+                12, Ui.PURPLE));
         page.addView(moment);
 
         LinearLayout contextCard = Ui.card(this);
@@ -711,6 +952,9 @@ public class MainActivity extends Activity {
         save.setOnClickListener(view -> {
             entry.momentContext = context.getText().toString().trim();
             entry.exactWords = exactWords.getText().toString().trim();
+            entry.communicationMode = String.valueOf(communicationMode.getSelectedItem());
+            entry.caregiverMeaning = caregiverMeaning.getText().toString().trim();
+            entry.eventConfirmed = eventConfirmed.isChecked();
             entry.promptsUsed = prompts.getText().toString().trim();
             entry.observer = observer.getText().toString().trim();
             entry.factors = factors.getText().toString().trim();
@@ -735,6 +979,7 @@ public class MainActivity extends Activity {
         LinearLayout page = page(scroll);
         addHeader(page, defaultSource.startsWith("Teacher") ? "School update" : "Theraplay update",
                 friendlyDate.format(date) + " • voice-to-text or keyboard", "✎");
+        TrackerStore.Profile profile = store.getProfile();
 
         TrackerStore.CareUpdate update = null;
         for (TrackerStore.CareUpdate candidate : store.getCareUpdates(date.toString())) {
@@ -757,13 +1002,21 @@ public class MainActivity extends Activity {
         Spinner source = simpleSpinner(sourceChoices, selectedSource);
         EditText provider = Ui.input(this, "Person or provider");
         provider.setText(careUpdate.provider.isEmpty()
-                ? (defaultSource.startsWith("Teacher") ? "School teacher • verbally reported at pickup" : "Theraplay")
+                ? providerForSource(profile, sourceChoices[selectedSource])
                 : careUpdate.provider);
         EditText enteredBy = Ui.input(this, "Entered by");
         enteredBy.setText(careUpdate.enteredBy.isEmpty() ? "Tamika" : careUpdate.enteredBy);
         sourceCard.addView(source);
         sourceCard.addView(provider);
         sourceCard.addView(enteredBy);
+        if (careUpdate.provider.isEmpty()) {
+            source.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    provider.setText(providerForSource(profile, sourceChoices[position]));
+                }
+                @Override public void onNothingSelected(AdapterView<?> parent) {}
+            });
+        }
         page.addView(sourceCard);
 
         LinearLayout transcriptCard = Ui.card(this);
@@ -774,7 +1027,7 @@ public class MainActivity extends Activity {
         transcriptCard.addView(dictate);
         transcriptCard.addView(transcript);
         transcriptCard.addView(Ui.text(this,
-                "Review the transcript before saving. Raw microphone audio is not stored. Android is asked to prefer offline recognition, but the device’s speech service controls processing.",
+                "Tamika: repeat what the teacher or therapist said, then fix any wrong words. The saved text is what appears in Elle’s report. Raw microphone audio is not stored.",
                 12, Ui.MUTED));
         page.addView(transcriptCard);
 
@@ -837,73 +1090,267 @@ public class MainActivity extends Activity {
         nav.setVisibility(View.GONE);
         ScrollView scroll = scrollPage();
         LinearLayout page = page(scroll);
-        addHeader(page, "Weekly communication", "Week " + weekNumber + " • repeatable school-day sample", "💬");
+        String reviewName = weekNumber == 0 ? "Starting example" : "Week " + weekNumber;
+        addHeader(page, "Weekly Talk Check", reviewName + " • about 5 minutes", "Talk");
 
         TrackerStore.WeeklySample existing = store.getWeeklySample(weekNumber);
         TrackerStore.WeeklySample sample = existing == null ? new TrackerStore.WeeklySample() : existing;
         sample.weekNumber = weekNumber;
         if (existing == null) sample.date = LocalDate.now().toString();
+        sample.ensurePromptResponses();
 
         LinearLayout protocol = Ui.card(this);
-        protocol.addView(cardHeader("1", "Use these exact prompts", "Say each once, then quietly wait 10 seconds"));
-        protocol.addView(promptBlock("1 • PERSONAL STORY", "“Tell me about one thing that happened at school today.”"));
-        protocol.addView(promptBlock("2 • SEQUENCE / EXPANSION", "“What happened next?”"));
-        protocol.addView(promptBlock("3 • FEELING / MEANING", "“How did you feel about it?”"));
-        protocol.addView(promptBlock("4 • RECIPROCAL SOCIAL BID", "“Something happened in my day too.”\nPause to see whether Elle comments or asks about it."));
+        protocol.addView(cardHeader("Talk", "Tamika, the app will guide you", "One question at a time, using very simple steps"));
         protocol.addView(Ui.text(this,
-                "Do not correct or model during this short sample. Practice freely afterward. Stop and mark not completed if Elle is distressed or does not want to continue.",
-                12, Ui.MUTED));
+                "Say the words shown on the screen. Wait 10 seconds before helping. Gestures, acting, AAC and remembered phrases all count. Save Elle’s exact words, even when you are not sure what they mean.",
+                14, Ui.INK));
+        TextView rule = Ui.text(this,
+                "Do not correct Elle during this short check. Praise her when she is finished. Stop if she is tired, upset or does not want to continue.",
+                12, Ui.PURPLE);
+        rule.setPadding(Ui.dp(this, 12), Ui.dp(this, 10), Ui.dp(this, 12), Ui.dp(this, 10));
+        rule.setBackground(Ui.background(Ui.LAVENDER, 13, this));
+        Ui.setMargins(rule, 0, 12, 0, 0);
+        protocol.addView(rule);
         page.addView(protocol);
 
-        LinearLayout guide = Ui.card(this);
-        guide.setBackground(Ui.background(Ui.LAVENDER, 18, this));
-        guide.addView(Ui.heading(this, "Weekly 0–5 guide"));
-        guide.addView(Ui.text(this,
-                "0 not observed even with support • 1 full help • 2 direct prompts • 3 several prompts • "
-                        + "4 light prompting • 5 independent and reciprocal",
-                12, Ui.PURPLE));
-        page.addView(guide);
+        final LocalDate[] sampleDate = {LocalDate.parse(sample.date)};
+        LinearLayout timing = Ui.card(this);
+        timing.addView(cardHeader("Schedule", "Use a similar time each week", "Tuesday after school is best; Wednesday after Speech/OT is the backup"));
+        Button dateButton = Ui.secondaryButton(this, "Date: " + friendlyDate.format(sampleDate[0]));
+        dateButton.setOnClickListener(view -> pickDate(sampleDate[0], date -> {
+            sampleDate[0] = date;
+            dateButton.setText("Date: " + friendlyDate.format(date));
+        }));
+        Spinner setting = simpleSpinner(new String[]{
+                "After school", "After Speech/OT", "Home day", "Other"
+        }, choiceIndex(new String[]{"After school", "After Speech/OT", "Home day", "Other"}, sample.setting));
+        timing.addView(dateButton);
+        timing.addView(Ui.text(this, "WHAT HAPPENED BEFORE THE TALK CHECK?", 10, Ui.MUTED));
+        timing.addView(setting);
+        page.addView(timing);
 
-        RatingPicker starts = ratingCard(page, "Starts communication herself", "Requests, comments or shares",
-                "Rate spontaneous initiations across the week, not only the recorded sample.", sample.startsCommunication);
-        RatingPicker turns = ratingCard(page, "Back-and-forth turns", "Keeps an exchange going",
-                "A turn is one partner’s communication followed by the other partner’s response.", sample.backAndForth);
-        RatingPicker smallTalk = ratingCard(page, "Small talk & stays on topic", "Social conversation",
-                "Notice relevant comments, acknowledgements and returning to the same topic.", sample.smallTalk);
-        RatingPicker tellsDay = ratingCard(page, "Tells us about her day", "People, place, event and feeling",
-                "Rate how much detail and sequence Elle shares and how much prompting she needs.", sample.tellsAboutDay);
-        RatingPicker openQuestions = ratingCard(page, "Answers open questions", "More than yes or no",
-                "Notice responses to what, who, where, what happened next and how questions.", sample.openQuestions);
-        RatingPicker followUps = ratingCard(page, "Asks a follow-up question", "Reciprocal interest",
-                "Notice whether Elle asks about the other person or requests another detail.", sample.followUpQuestions);
+        if (sample.hasPromptData()) {
+            LinearLayout saved = Ui.card(this);
+            saved.setBackground(Ui.background(Ui.MINT, 18, this));
+            saved.addView(Ui.heading(this, "A Talk Check is already saved"));
+            saved.addView(Ui.text(this,
+                    "Current automatic score: " + trimFloat(sample.promptScoreAverage()) + "/5. You can review each answer and correct it.",
+                    13, Ui.GREEN));
+            page.addView(saved);
+        }
+
+        Button start = Ui.primaryButton(this, sample.hasPromptData() ? "Review question 1" : "Start question 1");
+        start.setOnClickListener(view -> {
+            sample.date = sampleDate[0].toString();
+            sample.setting = String.valueOf(setting.getSelectedItem());
+            sample.completed = true;
+            sample.interruptionReason = "";
+            showWeeklyPromptStep(sample, 0);
+        });
+        page.addView(start);
+        Button cancel = Ui.secondaryButton(this, "Cancel");
+        cancel.setOnClickListener(view -> { nav.setVisibility(View.VISIBLE); renderTab(activeTab); });
+        page.addView(cancel);
+        content.addView(scroll);
+    }
+
+    private void showWeeklyPromptStep(TrackerStore.WeeklySample sample, int promptIndex) {
+        content.removeAllViews();
+        nav.setVisibility(View.GONE);
+        ScrollView scroll = scrollPage();
+        LinearLayout page = page(scroll);
+        TrackerStore.PromptResponse response = sample.promptResponses.get(promptIndex);
+        addHeader(page, "Weekly Talk Check", "Question " + (promptIndex + 1) + " of 5", "Talk");
+
+        LinearLayout progress = Ui.horizontal(this);
+        for (int index = 0; index < WEEKLY_PROMPTS.length; index++) {
+            TextView dot = Ui.text(this, String.valueOf(index + 1), 12,
+                    index <= promptIndex ? Ui.WHITE : Ui.MUTED);
+            dot.setGravity(Gravity.CENTER);
+            dot.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            dot.setBackground(Ui.background(index <= promptIndex ? Ui.PURPLE : Ui.LIGHT, 12, this));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, Ui.dp(this, 34), 1);
+            params.setMargins(Ui.dp(this, 3), 0, Ui.dp(this, 3), Ui.dp(this, 12));
+            progress.addView(dot, params);
+        }
+        page.addView(progress);
+
+        LinearLayout ask = Ui.card(this);
+        ask.setBackground(Ui.gradient(0xFFEFF7FF, 0xFFF4F1FF, 21, this));
+        ask.addView(Ui.text(this, "SAY EXACTLY THIS", 11, Ui.PURPLE));
+        TextView prompt = Ui.heading(this, "“" + WEEKLY_PROMPTS[promptIndex] + "”");
+        prompt.setTextSize(22);
+        Ui.setMargins(prompt, 0, 8, 0, 8);
+        ask.addView(prompt);
+        ask.addView(Ui.text(this,
+                "Say it once. Then tap the button and stay quiet until the timer ends.", 13, Ui.MUTED));
+        TextView timer = Ui.heading(this, response.recorded ? "Answer already saved" : "Ready to wait");
+        timer.setGravity(Gravity.CENTER);
+        timer.setTextColor(Ui.PURPLE);
+        Ui.setMargins(timer, 0, 14, 0, 0);
+        ask.addView(timer);
+        Button waitButton = Ui.primaryButton(this, response.recorded ? "Run the 10-second wait again" : "Start 10-second wait");
+        ask.addView(waitButton);
+        page.addView(ask);
+
+        LinearLayout answer = Ui.card(this);
+        answer.addView(cardHeader("Notes", "Record what Elle did", "The app calculates the 0–5 score for Tamika"));
+        answer.addView(Ui.text(this, "WHAT WAS ELLE’S RESPONSE?", 10, Ui.MUTED));
+        Spinner responseType = simpleSpinner(RESPONSE_CHOICES, response.responseType);
+        answer.addView(responseType);
+        answer.addView(Ui.text(this, "HOW MUCH EXTRA HELP DID YOU GIVE?", 10, Ui.MUTED));
+        Spinner support = simpleSpinner(SUPPORT_CHOICES, response.supportLevel);
+        answer.addView(support);
+        answer.addView(Ui.text(this, "HOW DID ELLE COMMUNICATE?", 10, Ui.MUTED));
+        Spinner communicationMode = simpleSpinner(COMMUNICATION_CHOICES,
+                choiceIndex(COMMUNICATION_CHOICES, response.communicationMode));
+        answer.addView(communicationMode);
+        EditText exactWords = multilineInput("Elle’s exact words, gesture or action", response.exactWords, 88);
+        answer.addView(exactWords);
+        Button dictate = Ui.secondaryButton(this, "Speak Elle’s exact words into the phone");
+        dictate.setOnClickListener(view -> startVoiceTranscription(exactWords));
+        answer.addView(dictate);
+        EditText meaning = multilineInput("What do you think Elle was telling you? Leave blank if unsure.",
+                response.caregiverMeaning, 80);
+        answer.addView(meaning);
+        CheckBox confirmed = checkbox("Someone could confirm this was a real event", response.eventConfirmed);
+        answer.addView(confirmed);
+        TextView unsure = Ui.text(this,
+                "It is okay to be unsure. Do not change Elle’s words to make them sound clearer.", 12, Ui.PURPLE);
+        unsure.setPadding(Ui.dp(this, 11), Ui.dp(this, 10), Ui.dp(this, 11), Ui.dp(this, 10));
+        unsure.setBackground(Ui.background(Ui.LAVENDER, 13, this));
+        answer.addView(unsure);
+        TextView scorePreview = Ui.heading(this, "Automatic score: " + response.score() + "/5");
+        Ui.setMargins(scorePreview, 0, 13, 0, 0);
+        answer.addView(scorePreview);
+        answer.setVisibility(response.recorded ? View.VISIBLE : View.GONE);
+        page.addView(answer);
+
+        Runnable refreshScore = () -> {
+            TrackerStore.PromptResponse preview = new TrackerStore.PromptResponse(promptIndex + 1);
+            preview.responseType = responseType.getSelectedItemPosition();
+            preview.supportLevel = support.getSelectedItemPosition();
+            scorePreview.setText("Automatic score: " + preview.score() + "/5");
+        };
+        AdapterView.OnItemSelectedListener scoreListener = new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { refreshScore.run(); }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        };
+        responseType.setOnItemSelectedListener(scoreListener);
+        support.setOnItemSelectedListener(scoreListener);
+
+        waitButton.setOnClickListener(view -> {
+            waitButton.setEnabled(false);
+            timer.setText("Wait quietly… 10");
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.postDelayed(new Runnable() {
+                int seconds = 9;
+                @Override public void run() {
+                    if (seconds > 0) {
+                        timer.setText("Wait quietly… " + seconds--);
+                        handler.postDelayed(this, 1000);
+                    } else {
+                        timer.setText("Now record what Elle did");
+                        waitButton.setText("10-second wait complete");
+                        answer.setVisibility(View.VISIBLE);
+                        scroll.post(() -> scroll.smoothScrollTo(0, answer.getTop()));
+                    }
+                }
+            }, 1000);
+        });
+
+        Button next = Ui.primaryButton(this, promptIndex == WEEKLY_PROMPTS.length - 1
+                ? "Save answer and review" : "Save answer and continue");
+        next.setOnClickListener(view -> {
+            response.recorded = true;
+            response.responseType = responseType.getSelectedItemPosition();
+            response.supportLevel = support.getSelectedItemPosition();
+            response.communicationMode = String.valueOf(communicationMode.getSelectedItem());
+            response.exactWords = exactWords.getText().toString().trim();
+            response.caregiverMeaning = meaning.getText().toString().trim();
+            response.eventConfirmed = confirmed.isChecked();
+            if (promptIndex < WEEKLY_PROMPTS.length - 1) showWeeklyPromptStep(sample, promptIndex + 1);
+            else showWeeklyReview(sample);
+        });
+        answer.addView(next);
+        Button notAsked = Ui.secondaryButton(this, "This question was not asked");
+        notAsked.setOnClickListener(view -> {
+            response.recorded = false;
+            response.exactWords = "";
+            response.caregiverMeaning = "";
+            if (promptIndex < WEEKLY_PROMPTS.length - 1) showWeeklyPromptStep(sample, promptIndex + 1);
+            else showWeeklyReview(sample);
+        });
+        answer.addView(notAsked);
+
+        Button stop = Ui.secondaryButton(this, "Stop for today");
+        stop.setOnClickListener(view -> {
+            sample.completed = false;
+            sample.interruptionReason = "Stopped because Elle was tired, upset, or did not want to continue.";
+            store.saveWeeklySample(sample);
+            Toast.makeText(this, "Partial Talk Check saved", Toast.LENGTH_SHORT).show();
+            nav.setVisibility(View.VISIBLE);
+            renderTab("Today");
+        });
+        page.addView(stop);
+        if (promptIndex > 0) {
+            Button back = Ui.secondaryButton(this, "Back to question " + promptIndex);
+            back.setOnClickListener(view -> showWeeklyPromptStep(sample, promptIndex - 1));
+            page.addView(back);
+        }
+        content.addView(scroll);
+    }
+
+    private void showWeeklyReview(TrackerStore.WeeklySample sample) {
+        content.removeAllViews();
+        nav.setVisibility(View.GONE);
+        ScrollView scroll = scrollPage();
+        LinearLayout page = page(scroll);
+        String label = sample.weekNumber == 0 ? "Starting example" : "Week " + sample.weekNumber;
+        addHeader(page, "Review before saving", label + " • Tamika can correct anything", "Notes");
+
+        LinearLayout summary = Ui.card(this);
+        summary.addView(cardHeader("Talk", "Talk Check summary",
+                "Automatic average " + trimFloat(sample.promptScoreAverage()) + "/5 • "
+                        + sample.recordedPromptCount() + " of 5 questions saved"));
+        for (int index = 0; index < sample.promptResponses.size(); index++) {
+            TrackerStore.PromptResponse response = sample.promptResponses.get(index);
+            String answer = response.exactWords.isEmpty() ? "No exact words saved" : "“" + response.exactWords + "”";
+            TextView line = Ui.text(this,
+                    (index + 1) + ". " + response.score() + "/5 • " + answer,
+                    13, response.recorded ? Ui.INK : Ui.MUTED);
+            line.setPadding(0, Ui.dp(this, 7), 0, Ui.dp(this, 7));
+            final int promptIndex = index;
+            line.setOnClickListener(view -> showWeeklyPromptStep(sample, promptIndex));
+            summary.addView(line);
+        }
+        summary.addView(Ui.text(this,
+                "A 3 means one relevant detail without extra help. Elle’s acting or remembered phrase can count when it clearly communicates a real event.",
+                12, Ui.PURPLE));
+        page.addView(summary);
 
         LinearLayout observed = Ui.card(this);
-        observed.addView(cardHeader("#", "What happened in the sample?", "Objective counts support the weekly ratings"));
-        CheckBox completed = checkbox("Sample completed", sample.completed);
-        Spinner details = simpleSpinner(new String[]{"0 details", "1 detail", "2 details", "3 details", "4 details", "5+ details"},
-                Math.max(0, Math.min(5, sample.detailCount)));
-        Spinner sampleTurns = simpleSpinner(new String[]{"0 turns", "1 turn", "2 turns", "3 turns", "4 turns", "5+ turns"},
-                Math.max(0, Math.min(5, sample.conversationTurns)));
-        CheckBox feelingWord = checkbox("Used a feeling word or idea", sample.usedFeelingWord);
-        CheckBox askedFollowUp = checkbox("Asked or attempted a follow-up question", sample.askedFollowUp);
-        EditText extraSupport = multilineInput("Extra support used beyond the exact prompts", sample.extraSupport, 72);
-        EditText sampleNote = multilineInput("Optional observation", sample.note, 82);
-        observed.addView(completed);
-        observed.addView(details);
+        observed.addView(cardHeader("Notes", "Two final observations", "Use simple facts—do not guess"));
+        Spinner sampleTurns = simpleSpinner(new String[]{
+                "0 back-and-forth turns", "1 back-and-forth turn", "2 back-and-forth turns",
+                "3 back-and-forth turns", "4 back-and-forth turns", "5+ back-and-forth turns"
+        }, Math.max(0, Math.min(5, sample.conversationTurns)));
+        CheckBox feelingWord = checkbox("Elle used a feeling word or showed a feeling", sample.usedFeelingWord);
+        CheckBox askedFollowUp = checkbox("Elle added more or asked a follow-up question", sample.askedFollowUp);
+        EditText sampleNote = multilineInput("Anything important about today? Optional.", sample.note, 82);
         observed.addView(sampleTurns);
         observed.addView(feelingWord);
         observed.addView(askedFollowUp);
-        observed.addView(extraSupport);
         observed.addView(sampleNote);
         page.addView(observed);
 
         LinearLayout video = Ui.card(this);
-        video.addView(cardHeader("▶", "Optional local video", "A real-life example, not proof of medication effect"));
+        video.addView(cardHeader("Video", "Optional private video", "Useful as an example, but not proof of what caused a change"));
         TextView videoStatus = Ui.text(this, weeklyVideoExists(sample)
-                ? "✓ Video available on this phone" : sample.videoRecorded
-                ? "Video was recorded on the other phone" : "No video recorded for this week", 13, Ui.MUTED);
+                ? "Video is available on this phone" : sample.videoRecorded
+                ? "Video was recorded on the other phone" : "No video recorded", 13, Ui.MUTED);
         video.addView(videoStatus);
-        Button recordVideo = Ui.primaryButton(this, "●  Record the 2-minute sample locally");
+        Button recordVideo = Ui.primaryButton(this, "Record this Talk Check locally");
         recordVideo.setOnClickListener(view -> startVideoCapture(sample, videoStatus));
         video.addView(recordVideo);
         if (weeklyVideoExists(sample)) {
@@ -912,37 +1359,49 @@ public class MainActivity extends Activity {
             video.addView(openVideo);
         }
         video.addView(Ui.text(this,
-                "The video file never uploads to GitHub. Only the date and “video recorded” marker appear in shared data and reports.",
+                "The video stays on this phone. Shared backups and reports include only a video marker.",
                 12, Ui.GREEN));
         page.addView(video);
 
-        Button save = Ui.primaryButton(this, "Save weekly communication review");
+        Button save = Ui.primaryButton(this, "Save " + label);
         save.setOnClickListener(view -> {
-            sample.date = LocalDate.now().toString();
-            sample.startsCommunication = starts.value;
-            sample.backAndForth = turns.value;
-            sample.smallTalk = smallTalk.value;
-            sample.tellsAboutDay = tellsDay.value;
-            sample.openQuestions = openQuestions.value;
-            sample.followUpQuestions = followUps.value;
-            sample.completed = completed.isChecked();
-            sample.detailCount = details.getSelectedItemPosition();
+            sample.completed = sample.recordedPromptCount() == WEEKLY_PROMPTS.length;
+            sample.interruptionReason = sample.completed || sample.weekNumber == 0 ? ""
+                    : "One or more standardized questions were not asked.";
+            sample.detailCount = sample.totalPromptDetails();
             sample.conversationTurns = sampleTurns.getSelectedItemPosition();
             sample.usedFeelingWord = feelingWord.isChecked();
             sample.askedFollowUp = askedFollowUp.isChecked();
-            sample.extraSupport = extraSupport.getText().toString().trim();
+            sample.extraSupport = supportSummary(sample);
             sample.note = sampleNote.getText().toString().trim();
+            int promptScore = Math.round(sample.promptScoreAverage());
+            sample.tellsAboutDay = promptScore;
+            sample.smallTalk = promptScore;
+            sample.openQuestions = promptScore;
+            sample.backAndForth = Math.min(5, sample.conversationTurns);
+            sample.followUpQuestions = sample.askedFollowUp ? Math.max(4, promptScore) : Math.min(3, promptScore);
             store.saveWeeklySample(sample);
-            Toast.makeText(this, "Weekly communication review saved", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, label + " saved", Toast.LENGTH_SHORT).show();
             nav.setVisibility(View.VISIBLE);
             renderTab("Today");
             syncInBackground(null, false);
         });
         page.addView(save);
-        Button cancel = Ui.secondaryButton(this, "Cancel");
-        cancel.setOnClickListener(view -> { nav.setVisibility(View.VISIBLE); renderTab(activeTab); });
-        page.addView(cancel);
+        Button back = Ui.secondaryButton(this, "Back to question 5");
+        back.setOnClickListener(view -> showWeeklyPromptStep(sample, WEEKLY_PROMPTS.length - 1));
+        page.addView(back);
         content.addView(scroll);
+    }
+
+    private String supportSummary(TrackerStore.WeeklySample sample) {
+        List<String> support = new ArrayList<>();
+        for (int index = 0; index < sample.promptResponses.size(); index++) {
+            TrackerStore.PromptResponse response = sample.promptResponses.get(index);
+            if (response.recorded && response.supportLevel > 0) {
+                support.add("Question " + (index + 1) + ": " + SUPPORT_CHOICES[response.supportLevel].toLowerCase(Locale.US));
+            }
+        }
+        return support.isEmpty() ? "No extra help beyond the set questions" : String.join("; ", support);
     }
 
     private TextView promptBlock(String label, String prompt) {
@@ -1060,7 +1519,7 @@ public class MainActivity extends Activity {
     private View historyScreen() {
         ScrollView scroll = scrollPage();
         LinearLayout page = page(scroll);
-        addHeader(page, "History", "Daily, weekly and care-team observations", "▦");
+        addHeader(page, "History", "Search and filter every observation", "History");
         List<TrackerStore.DailyEntry> entries = store.getEntries();
         List<TrackerStore.WeeklySample> samples = store.getWeeklySamples();
         List<TrackerStore.CareUpdate> careUpdates = store.getCareUpdates();
@@ -1069,69 +1528,216 @@ public class MainActivity extends Activity {
             empty.addView(Ui.heading(this, "No observations yet"));
             empty.addView(Ui.text(this, "Daily check-ins, weekly reviews and care-team updates will appear here.", 14, Ui.MUTED));
             page.addView(empty);
+            return scroll;
         }
-        if (!entries.isEmpty()) {
-            page.addView(Ui.section(this, "Daily check-ins"));
-            for (int index = entries.size() - 1; index >= 0; index--) {
-                TrackerStore.DailyEntry entry = entries.get(index);
-                LinearLayout card = Ui.card(this);
-                LocalDate date = LocalDate.parse(entry.date);
-                card.addView(Ui.heading(this, friendlyDate.format(date)));
-                card.addView(Ui.text(this,
-                        "Overall response " + trimFloat(responseAverage(entry)) + "/5  •  Sleep " + trimFloat(entry.sleepHours) + "h",
-                        14, Ui.MUTED));
-                if (entry.tellsAboutDay >= 0) {
-                    card.addView(Ui.text(this, "Tells about her day " + entry.tellsAboutDay + "/5", 14, Ui.PURPLE));
-                }
-                card.addView(Ui.text(this,
-                        entry.hasAnyDose() ? "✓ " + entry.dosesTakenCount() + " dose(s) recorded"
-                                + (entry.dose.isEmpty() ? "" : " • " + entry.dose)
-                                : "No doses marked taken",
-                        14, entry.hasAnyDose() ? Ui.GREEN : Ui.MUTED));
-                if (entry.hasSideEffects()) card.addView(Ui.text(this, "Possible side effects noted", 14, 0xFF984762));
-                if (entry.hasBowelData()) {
-                    String bowelText = entry.bowelMovementCount < 0 ? "Bowel detail recorded"
-                            : entry.bowelMovementCount + " bowel movement(s)"
-                            + (entry.bowelConsistency > 0 ? " • consistency " + entry.bowelConsistency : "");
-                    card.addView(Ui.text(this, bowelText, 13, Ui.MUTED));
-                }
-                if (!entry.exactWords.isEmpty()) card.addView(Ui.text(this, "Example: “" + entry.exactWords + "”", 14, Ui.INK));
-                if (!entry.note.isEmpty()) card.addView(Ui.text(this, "“" + entry.note + "”", 14, Ui.INK));
-                card.setOnClickListener(view -> showEntryEditor(date));
-                page.addView(card);
+
+        int observedDays = 0;
+        int awayDays = 0;
+        int doses = 0;
+        for (TrackerStore.DailyEntry entry : entries) {
+            if (entry.hasRatings) observedDays++;
+            if (entry.isNotObserved()) awayDays++;
+            doses += entry.dosesTakenCount();
+        }
+        LinearLayout summary = Ui.card(this);
+        summary.setBackground(Ui.gradient(Ui.PURPLE, Ui.PURPLE_LIGHT, 22, this));
+        TextView summaryTitle = Ui.heading(this, "Your records at a glance");
+        summaryTitle.setTextColor(Ui.WHITE);
+        summary.addView(summaryTitle);
+        summary.addView(Ui.text(this,
+                observedDays + " observed check-ins  •  " + doses + " doses  •  "
+                        + careUpdates.size() + " school/therapy notes"
+                        + (awayDays > 0 ? "  •  " + awayDays + " away day(s)" : ""),
+                13, 0xE6FFFFFF));
+        page.addView(summary);
+
+        EditText search = Ui.input(this, "Search notes, names, or Elle’s exact words");
+        page.addView(search);
+        String[] typeChoices = {"All entries", "Daily", "School", "Speech / OT", "Weekly Talk Check", "Away days"};
+        Spinner typeFilter = simpleSpinner(typeChoices, 0);
+        int currentWeek = Math.max(1, store.currentWeek());
+        String[] weekChoices = new String[currentWeek + 2];
+        weekChoices[0] = "All weeks";
+        weekChoices[1] = "Starting example";
+        for (int index = 1; index <= currentWeek; index++) weekChoices[index + 1] = "Week " + index;
+        Spinner weekFilter = simpleSpinner(weekChoices, 0);
+        Spinner sort = simpleSpinner(new String[]{"Newest first", "Oldest first"}, 0);
+        page.addView(Ui.text(this, "SHOW", 10, Ui.MUTED));
+        page.addView(typeFilter);
+        page.addView(Ui.text(this, "WEEK", 10, Ui.MUTED));
+        page.addView(weekFilter);
+        page.addView(Ui.text(this, "ORDER", 10, Ui.MUTED));
+        page.addView(sort);
+
+        TextView resultCount = Ui.text(this, "", 12, Ui.MUTED);
+        page.addView(resultCount);
+        LinearLayout results = Ui.vertical(this);
+        page.addView(results);
+
+        List<HistoryItem> allItems = buildHistoryItems(entries, samples, careUpdates, store.getProfile());
+        Runnable[] render = new Runnable[1];
+        render[0] = () -> {
+            String query = search.getText().toString().trim().toLowerCase(Locale.US);
+            String selectedType = String.valueOf(typeFilter.getSelectedItem());
+            int selectedWeekPosition = weekFilter.getSelectedItemPosition();
+            int selectedWeek = selectedWeekPosition == 0 ? -1 : selectedWeekPosition - 1;
+            List<HistoryItem> filtered = new ArrayList<>();
+            for (HistoryItem item : allItems) {
+                boolean typeMatch = "All entries".equals(selectedType)
+                        || "Away days".equals(selectedType) && "away".equals(item.type)
+                        || "Daily".equals(selectedType) && "daily".equals(item.type)
+                        || "School".equals(selectedType) && "school".equals(item.type)
+                        || "Speech / OT".equals(selectedType) && "therapy".equals(item.type)
+                        || "Weekly Talk Check".equals(selectedType) && "weekly".equals(item.type);
+                boolean weekMatch = selectedWeek < 0 || item.week == selectedWeek;
+                boolean searchMatch = query.isEmpty() || item.searchText.contains(query);
+                if (typeMatch && weekMatch && searchMatch) filtered.add(item);
             }
-        }
-        if (!samples.isEmpty()) {
-            page.addView(Ui.section(this, "Weekly communication"));
-            for (int index = samples.size() - 1; index >= 0; index--) {
-                TrackerStore.WeeklySample sample = samples.get(index);
-                LinearLayout card = Ui.card(this);
-                card.addView(Ui.heading(this, "Week " + sample.weekNumber + " communication review"));
-                card.addView(Ui.text(this,
-                        "Average " + trimFloat(sample.ratingAverage()) + "/5 • " + sample.detailCount
-                                + " details • " + sample.conversationTurns + " turns",
-                        14, Ui.MUTED));
-                if (sample.videoRecorded) card.addView(Ui.text(this, "▶ Video example recorded", 13, Ui.GREEN));
-                if (!sample.note.isEmpty()) card.addView(Ui.text(this, sample.note, 14, Ui.INK));
-                card.setOnClickListener(view -> showWeeklySampleEditor(sample.weekNumber));
-                page.addView(card);
+            Collections.sort(filtered, Comparator.comparing((HistoryItem item) -> item.date)
+                    .thenComparing(item -> item.title));
+            if (sort.getSelectedItemPosition() == 0) Collections.reverse(filtered);
+            results.removeAllViews();
+            resultCount.setText(filtered.size() + (filtered.size() == 1 ? " matching entry" : " matching entries"));
+            if (filtered.isEmpty()) {
+                LinearLayout empty = Ui.card(this);
+                empty.addView(Ui.heading(this, "No entries match"));
+                empty.addView(Ui.text(this, "Try a different word, entry type, or week.", 13, Ui.MUTED));
+                results.addView(empty);
+                return;
             }
-        }
-        if (!careUpdates.isEmpty()) {
-            page.addView(Ui.section(this, "School, Speech & OT"));
-            for (int index = careUpdates.size() - 1; index >= 0; index--) {
-                TrackerStore.CareUpdate update = careUpdates.get(index);
-                LocalDate date = LocalDate.parse(update.date);
-                LinearLayout card = Ui.card(this);
-                card.addView(Ui.heading(this, update.source + " • " + friendlyDate.format(date)));
-                if (!update.provider.isEmpty()) card.addView(Ui.text(this, update.provider, 12, Ui.MUTED));
-                if (!update.transcript.isEmpty()) card.addView(Ui.text(this, update.transcript, 14, Ui.INK));
-                if (!update.tagSummary().isEmpty()) card.addView(Ui.text(this, update.tagSummary(), 12, Ui.PURPLE));
-                card.setOnClickListener(view -> showCareUpdateEditor(date, update.source));
-                page.addView(card);
+            Map<String, List<HistoryItem>> byDate = new LinkedHashMap<>();
+            for (HistoryItem item : filtered) byDate.computeIfAbsent(item.date.toString(), key -> new ArrayList<>()).add(item);
+            for (List<HistoryItem> dayItems : byDate.values()) {
+                LinearLayout dayCard = Ui.card(this);
+                LocalDate date = dayItems.get(0).date;
+                dayCard.addView(Ui.heading(this, friendlyDate.format(date)));
+                dayCard.addView(Ui.text(this,
+                        date.getDayOfWeek().toString().substring(0, 1)
+                                + date.getDayOfWeek().toString().substring(1).toLowerCase(Locale.US)
+                                + " • " + dayItems.size() + (dayItems.size() == 1 ? " entry" : " entries"),
+                        12, Ui.MUTED));
+                for (HistoryItem item : dayItems) dayCard.addView(historyItemView(item));
+                results.addView(dayCard);
             }
-        }
+        };
+
+        AdapterView.OnItemSelectedListener filterListener = new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { render[0].run(); }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        };
+        typeFilter.setOnItemSelectedListener(filterListener);
+        weekFilter.setOnItemSelectedListener(filterListener);
+        sort.setOnItemSelectedListener(filterListener);
+        search.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence value, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence value, int start, int before, int count) { render[0].run(); }
+            @Override public void afterTextChanged(Editable value) {}
+        });
+        render[0].run();
         return scroll;
+    }
+
+    private List<HistoryItem> buildHistoryItems(List<TrackerStore.DailyEntry> entries,
+                                                List<TrackerStore.WeeklySample> samples,
+                                                List<TrackerStore.CareUpdate> careUpdates,
+                                                TrackerStore.Profile profile) {
+        List<HistoryItem> items = new ArrayList<>();
+        for (TrackerStore.DailyEntry entry : entries) {
+            LocalDate date = safeDate(entry.date, LocalDate.now());
+            boolean away = entry.isNotObserved();
+            String title = away ? "Away / not observed" : entry.hasRatings ? "Daily check-in" : "Health-only entry";
+            String summary = entry.hasRatings
+                    ? "Response " + trimFloat(responseAverage(entry)) + "/5"
+                            + (entry.tellsAboutDay >= 0 ? " • tells about her day " + entry.tellsAboutDay + "/5" : "")
+                    : entry.observationStatus;
+            summary += entry.hasAnyDose() ? " • " + entry.dosesTakenCount() + " dose(s) • " + entry.doseConfirmation
+                    : " • medication " + entry.doseConfirmation.toLowerCase(Locale.US);
+            String searchText = title + " " + summary + " " + entry.momentContext + " " + entry.exactWords
+                    + " " + entry.caregiverMeaning + " " + entry.promptsUsed + " " + entry.observer
+                    + " " + entry.factors + " " + entry.note;
+            HistoryItem item = new HistoryItem(date, away ? "away" : "daily", title, summary,
+                    searchText.toLowerCase(Locale.US), weekForDate(date, profile),
+                    away ? R.drawable.nav_today_3d : R.drawable.feature_communication_3d);
+            item.open = () -> showEntryEditor(date);
+            items.add(item);
+        }
+        for (TrackerStore.WeeklySample sample : samples) {
+            LocalDate date = safeDate(sample.date, LocalDate.now());
+            String title = sample.weekNumber == 0 ? "Starting communication example" : "Week " + sample.weekNumber + " Talk Check";
+            String summary = sample.hasPromptData()
+                    ? "Automatic score " + trimFloat(sample.promptScoreAverage()) + "/5 • "
+                    + sample.recordedPromptCount() + "/5 questions • " + sample.totalPromptDetails() + " details • " + sample.setting
+                    : "Earlier weekly review " + trimFloat(sample.ratingAverage()) + "/5";
+            StringBuilder searchText = new StringBuilder(title).append(' ').append(summary).append(' ').append(sample.note);
+            for (TrackerStore.PromptResponse response : sample.promptResponses) {
+                searchText.append(' ').append(response.exactWords).append(' ').append(response.caregiverMeaning);
+            }
+            HistoryItem item = new HistoryItem(date, "weekly", title, summary,
+                    searchText.toString().toLowerCase(Locale.US), sample.weekNumber, R.drawable.feature_video_3d);
+            item.open = () -> showWeeklySampleEditor(sample.weekNumber);
+            items.add(item);
+        }
+        for (TrackerStore.CareUpdate update : careUpdates) {
+            LocalDate date = safeDate(update.date, LocalDate.now());
+            boolean school = update.source.startsWith("Teacher");
+            String title = update.source + (update.provider.isEmpty() ? "" : " • " + update.provider);
+            String summary = update.transcript.isEmpty() ? "No transcript saved" : update.transcript;
+            String searchText = title + " " + summary + " " + update.tagSummary() + " "
+                    + update.goalSkill + " " + update.supportProgress + " " + update.homeRecommendation;
+            HistoryItem item = new HistoryItem(date, school ? "school" : "therapy", title, summary,
+                    searchText.toLowerCase(Locale.US), weekForDate(date, profile), R.drawable.feature_school_3d);
+            item.open = () -> showCareUpdateEditor(date, update.source);
+            items.add(item);
+        }
+        return items;
+    }
+
+    private View historyItemView(HistoryItem item) {
+        LinearLayout row = Ui.horizontal(this);
+        row.setPadding(0, Ui.dp(this, 11), 0, Ui.dp(this, 9));
+        row.addView(artImage(item.iconResource, 44), new LinearLayout.LayoutParams(Ui.dp(this, 44), Ui.dp(this, 44)));
+        LinearLayout copy = Ui.vertical(this);
+        copy.setPadding(Ui.dp(this, 11), 0, Ui.dp(this, 5), 0);
+        copy.addView(Ui.text(this, item.title, 14, Ui.INK));
+        copy.addView(Ui.text(this, item.summary, 12, Ui.MUTED));
+        row.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        TextView arrow = Ui.text(this, "›", 25, Ui.PURPLE);
+        row.addView(arrow);
+        row.setClickable(true);
+        row.setFocusable(true);
+        row.setOnClickListener(view -> item.open.run());
+        return row;
+    }
+
+    private int weekForDate(LocalDate date, TrackerStore.Profile profile) {
+        try {
+            long days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.parse(profile.startDate), date);
+            return days < 0 ? 0 : Math.min(12, (int) (days / 7) + 1);
+        } catch (Exception ignored) {
+            return 1;
+        }
+    }
+
+    private static final class HistoryItem {
+        final LocalDate date;
+        final String type;
+        final String title;
+        final String summary;
+        final String searchText;
+        final int week;
+        final int iconResource;
+        Runnable open;
+
+        HistoryItem(LocalDate date, String type, String title, String summary, String searchText,
+                    int week, int iconResource) {
+            this.date = date;
+            this.type = type;
+            this.title = title;
+            this.summary = summary;
+            this.searchText = searchText;
+            this.week = week;
+            this.iconResource = iconResource;
+        }
     }
 
     private View reportsScreen() {
@@ -1146,10 +1752,22 @@ public class MainActivity extends Activity {
         medication.addView(cardHeader("Rx", "Medication overview",
                 hasStructuredDose(profile) ? "Leucovorin • " + prescribedDoseSummary(profile) : "Leucovorin"));
         int recordedDoses = 0;
-        for (TrackerStore.DailyEntry entry : entries) recordedDoses += entry.dosesTakenCount();
+        int unconfirmedMedicationDays = 0;
+        int missedMedicationDays = 0;
+        for (TrackerStore.DailyEntry entry : entries) {
+            recordedDoses += entry.dosesTakenCount();
+            if ("Not confirmed".equals(entry.doseConfirmation)) unconfirmedMedicationDays++;
+            if ("Not given / missed".equals(entry.doseConfirmation)) missedMedicationDays++;
+        }
         medication.addView(Ui.text(this,
                 recordedDoses + " doses recorded" + (hasStructuredDose(profile) ? " • " + dailyDoseTotal(profile) + " prescribed" : ""),
                 14, Ui.GREEN));
+        if (unconfirmedMedicationDays > 0) medication.addView(Ui.text(this,
+                unconfirmedMedicationDays + " day(s) marked not confirmed—not automatically counted as missed doses.",
+                12, Ui.MUTED));
+        if (missedMedicationDays > 0) medication.addView(Ui.text(this,
+                missedMedicationDays + " day(s) explicitly marked not given / missed.",
+                12, 0xFF984762));
         page.addView(medication);
         LinearLayout glance = Ui.card(this);
         glance.addView(Ui.heading(this, "At a glance"));
@@ -1157,19 +1775,64 @@ public class MainActivity extends Activity {
             glance.addView(Ui.text(this, "Complete a daily check-in to begin building trends.", 14, Ui.MUTED));
         } else {
             int sideEffectDays = 0;
+            int ratedDays = 0;
+            int awayDays = 0;
             float total = 0;
             for (TrackerStore.DailyEntry entry : entries) {
-                total += responseAverage(entry);
+                if (entry.hasRatings) {
+                    total += responseAverage(entry);
+                    ratedDays++;
+                }
+                if (entry.isNotObserved()) awayDays++;
                 if (entry.hasSideEffects()) sideEffectDays++;
             }
             glance.addView(Ui.text(this,
-                    entries.size() + " check-ins • Average response " + trimFloat(total / entries.size()) + "/5 • "
-                            + sideEffectDays + " side-effect days", 14, Ui.MUTED));
+                    ratedDays + " observed check-ins"
+                            + (ratedDays > 0 ? " • Average response " + trimFloat(total / ratedDays) + "/5" : "")
+                            + " • " + awayDays + " away day(s) • " + sideEffectDays + " concern day(s)",
+                    14, Ui.MUTED));
         }
         glance.addView(Ui.text(this,
-                weeklySamples.size() + " weekly communication review(s) • " + careUpdates.size()
+                weeklySamples.size() + " Talk Check or starting example(s) • " + careUpdates.size()
                         + " school/Speech/OT update(s)", 14, Ui.PURPLE));
+        glance.addView(Ui.text(this,
+                "Away and health-only days are excluded from communication averages.", 12, Ui.GREEN));
         page.addView(glance);
+
+        TrackerStore.WeeklySample starting = null;
+        TrackerStore.WeeklySample latest = null;
+        for (TrackerStore.WeeklySample sample : weeklySamples) {
+            if (sample.weekNumber == 0 && sample.hasPromptData()) starting = sample;
+            else if (sample.weekNumber > 0 && sample.hasPromptData()) latest = sample;
+        }
+        LinearLayout communication = Ui.card(this);
+        communication.addView(cardHeader("Talk", "Communication comparison",
+                "Same five questions, same wait time, every week"));
+        if (starting != null && latest != null) {
+            communication.addView(Ui.heading(this,
+                    "Starting " + trimFloat(starting.promptScoreAverage()) + "/5  →  Week "
+                            + latest.weekNumber + " " + trimFloat(latest.promptScoreAverage()) + "/5"));
+            communication.addView(Ui.text(this,
+                    "Details shared: " + starting.totalPromptDetails() + " → " + latest.totalPromptDetails()
+                            + " • Back-and-forth turns: " + starting.conversationTurns + " → " + latest.conversationTurns,
+                    13, Ui.PURPLE));
+        } else if (starting != null) {
+            communication.addView(Ui.text(this,
+                    "Starting example saved at " + trimFloat(starting.promptScoreAverage())
+                            + "/5. Complete the next Weekly Talk Check to begin the comparison.",
+                    14, Ui.MUTED));
+        } else {
+            communication.addView(Ui.text(this,
+                    "Add Elle’s starting example so the report can compare later weeks with her starting point.",
+                    14, Ui.MUTED));
+            Button addStarting = Ui.secondaryButton(this, "Add starting example");
+            addStarting.setOnClickListener(view -> showWeeklySampleEditor(0));
+            communication.addView(addStarting);
+        }
+        communication.addView(Ui.text(this,
+                "The report describes changes that happened during the leucovorin trial. It cannot prove what caused them.",
+                12, Ui.GREEN));
+        page.addView(communication);
 
         page.addView(Ui.section(this, "Milestone reports"));
         page.addView(reportCard("6", "Week 6 report", "First 42 days of ratings, medication and notes", 42));
@@ -1183,14 +1846,14 @@ public class MainActivity extends Activity {
         included.addView(Ui.heading(this, "What’s included"));
         included.addView(Ui.text(this,
                 "✓ Medication and dose history\n✓ Daily communication, telling-about-her-day and response trends\n"
-                        + "✓ Sleep, bowel and possible side-effect log\n✓ Weekly standardized language samples\n"
+                        + "✓ Sleep, bowel and possible side-effect log\n✓ Five-question Weekly Talk Checks with automatic scores\n"
                         + "✓ Teacher, Speech and OT notes labeled by source\n✓ Structured examples, prompts and caregiver notes\n"
-                        + "✓ Video index only — video files are never embedded",
+                        + "✓ Observed, health-only and away days kept separate\n✓ Video index only — video files are never embedded",
                 14, Ui.MUTED));
         page.addView(included);
 
         TextView notice = Ui.text(this,
-                "This tracker records observations only. Medication decisions should be made with the prescriber.",
+                "Improvement may coincide with the leucovorin trial, but this family tracker cannot establish cause. Medication decisions belong with Elle’s prescriber.",
                 12, Ui.GREEN);
         notice.setPadding(Ui.dp(this, 14), Ui.dp(this, 12), Ui.dp(this, 14), Ui.dp(this, 12));
         notice.setBackground(Ui.background(Ui.MINT, 14, this));
@@ -1285,23 +1948,76 @@ public class MainActivity extends Activity {
         page.addView(profileCard);
 
         page.addView(Ui.section(this, "Care schedule"));
+        LinearLayout schoolCard = Ui.card(this);
+        schoolCard.addView(cardHeader("School", "School and classroom", "Used to prefill teacher updates and reports"));
+        EditText schoolName = Ui.input(this, "School name"); schoolName.setText(profile.schoolName);
+        EditText teacherName = Ui.input(this, "Primary teacher"); teacherName.setText(profile.teacherName);
+        EditText className = Ui.input(this, "Class or grade"); className.setText(profile.className);
+        String[] schoolMethods = {"In person at pickup", "Teacher message or app", "Email", "Phone call", "Written daily note"};
+        Spinner schoolMethod = simpleSpinner(schoolMethods, choiceIndex(schoolMethods, profile.schoolUpdateMethod));
+        schoolCard.addView(schoolName);
+        schoolCard.addView(teacherName);
+        schoolCard.addView(className);
+        schoolCard.addView(Ui.text(this, "USUAL UPDATE METHOD", 10, Ui.MUTED));
+        schoolCard.addView(schoolMethod);
+        page.addView(schoolCard);
+
+        LinearLayout therapyCard = Ui.card(this);
+        therapyCard.addView(cardHeader("Speech", "Speech and OT", "Speech and OT names remain separate in the report"));
+        EditText therapyClinic = Ui.input(this, "Clinic or provider"); therapyClinic.setText(profile.therapyClinic);
+        EditText speechTherapist = Ui.input(this, "Speech therapist"); speechTherapist.setText(profile.speechTherapist);
+        EditText otTherapist = Ui.input(this, "OT therapist"); otTherapist.setText(profile.otTherapist);
+        String[] therapyMethods = {"In person after session", "Clinician message or app", "Email", "Phone call", "Written session note"};
+        Spinner therapyMethod = simpleSpinner(therapyMethods, choiceIndex(therapyMethods, profile.therapyUpdateMethod));
+        therapyCard.addView(therapyClinic);
+        therapyCard.addView(speechTherapist);
+        therapyCard.addView(otTherapist);
+        therapyCard.addView(Ui.text(this, "USUAL UPDATE METHOD", 10, Ui.MUTED));
+        therapyCard.addView(therapyMethod);
+        page.addView(therapyCard);
+
         LinearLayout scheduleCard = Ui.card(this);
-        scheduleCard.addView(cardHeader("▦", "Elle’s weekly schedule", "Controls which school or therapy button appears on Today"));
+        scheduleCard.addView(cardHeader("Schedule", "Elle’s weekly schedule", "Controls the simple steps shown on Today"));
         CheckBox mondaySchool = checkbox("Monday — school", profile.schoolMonday);
-        CheckBox tuesdaySchool = checkbox("Tuesday — school + weekly language sample", profile.schoolTuesday);
+        CheckBox tuesdaySchool = checkbox("Tuesday — school + main Weekly Talk Check", profile.schoolTuesday);
         CheckBox wednesdayTheraplay = checkbox("Wednesday — Theraplay Speech + OT", profile.theraplayWednesday);
         scheduleCard.addView(mondaySchool);
         scheduleCard.addView(tuesdaySchool);
         scheduleCard.addView(wednesdayTheraplay);
         scheduleCard.addView(Ui.text(this,
-                "Thursday and Friday remain home days. Medication and the normal daily check-in still appear every day.",
+                "Wednesday after Speech/OT is the backup Talk Check day. Thursday and Friday can be medication and health-only home days.",
                 12, Ui.MUTED));
+
+        CheckBox awayWeekends = checkbox("Elle is away every other weekend", profile.awayWeekendsEnabled);
+        final LocalDate[] awayAnchor = {safeDate(profile.awayWeekendAnchor, nextFriday(LocalDate.now()))};
+        Button awayDate = Ui.secondaryButton(this, "First away Friday: " + friendlyDate.format(awayAnchor[0]));
+        awayDate.setOnClickListener(view -> pickDate(awayAnchor[0], date -> {
+            awayAnchor[0] = date;
+            awayDate.setText("First away Friday: " + friendlyDate.format(date));
+        }));
+        scheduleCard.addView(awayWeekends);
+        scheduleCard.addView(awayDate);
+        scheduleCard.addView(Ui.text(this,
+                "Scheduled Friday–Sunday away days pause the full check-in. Unknown information stays unknown—it is never scored as zero or marked as a missed dose.",
+                12, Ui.PURPLE));
         Button saveSchedule = Ui.secondaryButton(this, "Save care schedule");
         saveSchedule.setOnClickListener(view -> {
             profile.schoolMonday = mondaySchool.isChecked();
             profile.schoolTuesday = tuesdaySchool.isChecked();
             profile.theraplayWednesday = wednesdayTheraplay.isChecked();
             profile.weeklySampleDay = DayOfWeek.TUESDAY.getValue();
+            profile.weeklyBackupDay = DayOfWeek.WEDNESDAY.getValue();
+            profile.schoolName = schoolName.getText().toString().trim();
+            profile.teacherName = teacherName.getText().toString().trim();
+            profile.className = className.getText().toString().trim();
+            profile.schoolUpdateMethod = String.valueOf(schoolMethod.getSelectedItem());
+            profile.therapyClinic = therapyClinic.getText().toString().trim();
+            profile.speechTherapist = speechTherapist.getText().toString().trim();
+            profile.otTherapist = otTherapist.getText().toString().trim();
+            profile.therapyUpdateMethod = String.valueOf(therapyMethod.getSelectedItem());
+            profile.awayWeekendsEnabled = awayWeekends.isChecked();
+            profile.awayWeekendAnchor = awayAnchor[0].toString();
+            profile.awayWeekendLabel = "Away with grandmother";
             store.saveProfile(profile);
             Toast.makeText(this, "Care schedule saved", Toast.LENGTH_SHORT).show();
             renderTab("Settings");
@@ -1562,6 +2278,52 @@ public class MainActivity extends Activity {
     private String valueOr(EditText input, String fallback) {
         String value = input.getText().toString().trim();
         return value.isEmpty() ? fallback : value;
+    }
+
+    private int choiceIndex(String[] choices, String value) {
+        if (value != null) {
+            for (int index = 0; index < choices.length; index++) {
+                if (choices[index].equals(value)) return index;
+            }
+        }
+        return 0;
+    }
+
+    private LocalDate nextFriday(LocalDate date) {
+        LocalDate candidate = date;
+        while (candidate.getDayOfWeek() != DayOfWeek.FRIDAY) candidate = candidate.plusDays(1);
+        return candidate;
+    }
+
+    private LocalDate safeDate(String value, LocalDate fallback) {
+        try {
+            return LocalDate.parse(value);
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
+    private String providerForSource(TrackerStore.Profile profile, String source) {
+        if (source.startsWith("Teacher")) {
+            String person = profile.teacherName.isEmpty() ? "Teacher not added yet" : profile.teacherName;
+            String classroom = profile.className.isEmpty() ? "" : " • " + profile.className;
+            return person + classroom + " • " + profile.schoolUpdateMethod;
+        }
+        String clinic = profile.therapyClinic.isEmpty() ? "Theraplay" : profile.therapyClinic;
+        if (source.contains("Speech + OT")) {
+            String speech = profile.speechTherapist.isEmpty() ? "Speech provider not added" : profile.speechTherapist;
+            String ot = profile.otTherapist.isEmpty() ? "OT provider not added" : profile.otTherapist;
+            return clinic + " • " + speech + " + " + ot + " • " + profile.therapyUpdateMethod;
+        }
+        if (source.contains("Speech")) {
+            String speech = profile.speechTherapist.isEmpty() ? "Speech provider not added" : profile.speechTherapist;
+            return clinic + " • " + speech + " • " + profile.therapyUpdateMethod;
+        }
+        if (source.contains("OT")) {
+            String ot = profile.otTherapist.isEmpty() ? "OT provider not added" : profile.otTherapist;
+            return clinic + " • " + ot + " • " + profile.therapyUpdateMethod;
+        }
+        return clinic + " • " + profile.therapyUpdateMethod;
     }
 
     private String trimFloat(float value) {
