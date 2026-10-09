@@ -4,12 +4,22 @@ A private, local Android tracker for a 12-week leucovorin trial.
 
 ## Install on each phone
 
-1. Send `Elle-Journey-v1.1.apk` to the Android phone.
+1. Send `Elle-Journey-v1.2.apk` to the Android phone.
 2. Open the file on the phone.
 3. If Android asks, allow installs from the app used to open the file.
 4. Tap **Install**, then open **Elle's Journey**.
 
-Android may show a Play Protect warning because this is a private APK rather than a Play Store app. The app requests no internet, location, camera, microphone, contacts, or notification permissions.
+Android may show a Play Protect warning because this is a private APK rather than a Play Store app. The app uses internet access only for the optional encrypted GitHub sync and requests no location, camera, microphone, contacts, or notification permissions.
+
+When updating from an earlier version, install the new APK directly over the existing app. Do not uninstall first; Android preserves the local check-ins and secure sync settings during an update.
+
+## Version 1.2
+
+- Refreshed native interface matching the approved browser prototype.
+- Numeric `0–5` ratings with `3` clearly identified as Elle's usual baseline.
+- Structured first and optional second leucovorin dose amounts.
+- Daily per-dose completion and automatic time recording.
+- Dosage history and recorded-dose counts in doctor reports.
 
 ## Using two phones
 

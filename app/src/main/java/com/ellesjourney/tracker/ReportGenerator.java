@@ -73,7 +73,7 @@ final class ReportGenerator {
         float sleepTotal = 0;
         float responseTotal = 0;
         for (TrackerStore.DailyEntry entry : entries) {
-            if (entry.doseTaken) doses++;
+            doses += entry.dosesTakenCount();
             if (entry.hasSideEffects()) sideEffectDays++;
             sleepTotal += entry.sleepHours;
             responseTotal += average(entry);
@@ -133,7 +133,7 @@ final class ReportGenerator {
         drawWrapped(canvas, paint, effects.toString(), MARGIN, y, PAGE_WIDTH - MARGIN, 11, Ui.INK, 16, false);
 
         y += 45;
-        String doseText = profile.defaultDose.isEmpty() ? "No default dose entered" : profile.defaultDose;
+        String doseText = prescribedDoseSummary(profile);
         drawText(canvas, paint, "PRESCRIBED DOSE", MARGIN, y, 10, Ui.MUTED, true);
         drawWrapped(canvas, paint, doseText + "  •  Marked taken on " + doses + " logged days",
                 MARGIN, y + 18, PAGE_WIDTH - MARGIN, 11, Ui.INK, 16, false);
@@ -182,10 +182,10 @@ final class ReportGenerator {
             String scores = "Communication " + entry.communication + "  •  Engagement " + entry.engagement
                     + "  •  Focus " + entry.focus + "  •  Mood " + entry.mood + "  •  Appetite " + entry.appetite;
             drawWrapped(canvas, paint, scores, MARGIN + 13, y + 41, PAGE_WIDTH - MARGIN - 13, 9, Ui.MUTED, 13, false);
-            String medication = entry.doseTaken ? "Medication taken" + (entry.dose.isEmpty() ? "" : ": " + entry.dose)
-                    : "Medication not marked taken";
+            String medication = entry.hasAnyDose() ? entry.dosesTakenCount() + " dose(s) recorded"
+                    + (entry.dose.isEmpty() ? "" : ": " + entry.dose) : "No doses marked taken";
             drawText(canvas, paint, medication + "  •  Sleep " + oneDecimal(entry.sleepHours) + "h",
-                    MARGIN + 13, y + 67, 9, entry.doseTaken ? Ui.GREEN : Ui.MUTED, true);
+                    MARGIN + 13, y + 67, 9, entry.hasAnyDose() ? Ui.GREEN : Ui.MUTED, true);
             if (!entry.note.isEmpty()) {
                 drawWrapped(canvas, paint, "Note: " + entry.note, MARGIN + 13, y + 88,
                         PAGE_WIDTH - MARGIN - 13, 9, Ui.INK, 13, false);
@@ -210,8 +210,8 @@ final class ReportGenerator {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(1);
         paint.setColor(Color.rgb(221, 219, 225));
-        for (int score = 1; score <= 5; score++) {
-            float y = bottom - ((score - 1) / 4f) * (bottom - top);
+        for (int score = 0; score <= 5; score++) {
+            float y = bottom - (score / 5f) * (bottom - top);
             canvas.drawLine(left + 22, y, right, y, paint);
             paint.setStyle(Paint.Style.FILL);
             drawText(canvas, paint, String.valueOf(score), left, y + 3, 8, Ui.MUTED, false);
@@ -221,7 +221,7 @@ final class ReportGenerator {
             Path path = new Path();
             for (int index = 0; index < entries.size(); index++) {
                 float x = left + 22 + (index / (float) (entries.size() - 1)) * (right - left - 22);
-                float y = bottom - ((average(entries.get(index)) - 1f) / 4f) * (bottom - top);
+                float y = bottom - (average(entries.get(index)) / 5f) * (bottom - top);
                 if (index == 0) path.moveTo(x, y); else path.lineTo(x, y);
             }
             paint.setColor(Ui.PURPLE);
@@ -230,7 +230,7 @@ final class ReportGenerator {
         } else if (entries.size() == 1) {
             paint.setColor(Ui.PURPLE);
             paint.setStyle(Paint.Style.FILL);
-            float y = bottom - ((average(entries.get(0)) - 1f) / 4f) * (bottom - top);
+            float y = bottom - (average(entries.get(0)) / 5f) * (bottom - top);
             canvas.drawCircle((left + right) / 2, y, 4, paint);
         }
         paint.setStyle(Paint.Style.FILL);
@@ -306,5 +306,19 @@ final class ReportGenerator {
 
     private static String oneDecimal(float value) {
         return String.format(Locale.US, "%.1f", value);
+    }
+
+    private static String prescribedDoseSummary(TrackerStore.Profile profile) {
+        String unit = profile.doseUnit == null || profile.doseUnit.isEmpty() ? "mg" : profile.doseUnit;
+        if (profile.morningDose != null && !profile.morningDose.isEmpty()) {
+            if (profile.dosesPerDay < 2) {
+                return profile.morningDose + " " + unit + " once daily";
+            }
+            if (profile.morningDose.equals(profile.eveningDose)) {
+                return profile.morningDose + " " + unit + " twice daily";
+            }
+            return profile.morningDose + " " + unit + " first dose + " + profile.eveningDose + " " + unit + " second dose";
+        }
+        return profile.defaultDose == null || profile.defaultDose.isEmpty() ? "No prescribed dose entered" : profile.defaultDose;
     }
 }

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elle's Journey v1.2 Preview</title>
+  <style>
+    :root { --ink:#17223b; --muted:#72809a; --canvas:#f4f6f9; --card:#fff; --violet:#6557c9; --violet2:#897be4; --lav:#eeebff; --mint:#e1f5ec; --green:#267759; --amber:#fff0d8; --amberink:#9a641f; --line:#e9ebf1; --rose:#fff0f2; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); font:15px/1.35 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:radial-gradient(circle at 20% 10%,#eae7ff,transparent 28%),linear-gradient(135deg,#f1f4fa,#faf8f2); }
+    .page { min-height:100vh; padding:30px; }
+    .heading { max-width:1200px; margin:0 auto 24px; display:flex; align-items:end; justify-content:space-between; }
+    .heading h1 { font-size:27px; margin:0 0 4px; letter-spacing:-.03em; } .heading p { margin:0; color:var(--muted); }
+    .badge { background:#17223b; color:#fff; border-radius:99px; padding:9px 15px; font-size:13px; font-weight:750; }
+    .phones { display:flex; gap:28px; max-width:1200px; margin:auto; justify-content:center; flex-wrap:wrap; }
+    .phone { width:360px; height:780px; border-radius:40px; border:9px solid #171b2b; overflow:hidden; background:var(--canvas); box-shadow:0 28px 60px #29304c2b; position:relative; }
+    .status { height:28px; display:flex; justify-content:space-between; align-items:center; padding:7px 19px 0; font-size:11px; font-weight:750; }
+    .content { padding:13px 18px 90px; height:calc(100% - 28px); overflow:hidden; }
+    .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:17px; }
+    .eyebrow { font-size:11px; color:var(--violet); text-transform:uppercase; letter-spacing:.1em; font-weight:850; margin-bottom:3px; }
+    h2 { margin:0; font-size:25px; letter-spacing:-.035em; } .sub { margin:3px 0 0; color:var(--muted); font-size:13px; }
+    .avatar { width:45px; height:45px; border-radius:16px; background:var(--lav); display:grid; place-items:center; font-size:21px; box-shadow:inset 0 0 0 1px #dfd9ff; }
+    .hero { border-radius:24px; padding:18px; color:#fff; background:linear-gradient(140deg,var(--violet),var(--violet2)); box-shadow:0 10px 25px #6557c93a; }
+    .hero-line { display:flex; align-items:end; justify-content:space-between; } .hero strong { font-size:19px; } .hero .day { font-size:12px; opacity:.9; }
+    .bar { height:7px; margin:14px 0 8px; border-radius:9px; background:#ffffff40; overflow:hidden; }.bar span { display:block; width:31%; height:100%; border-radius:9px; background:#fff; }
+    .card { background:#fff; border:1px solid #edf0f5; border-radius:21px; padding:16px; margin-top:13px; box-shadow:0 5px 18px #2d38580d; }
+    .card-head { display:flex; align-items:center; gap:11px; margin-bottom:12px; }.icon { width:39px; height:39px; border-radius:13px; display:grid; place-items:center; background:var(--lav); color:var(--violet); font-size:19px; font-weight:800; }
+    .card-head strong { display:block; font-size:16px; }.card-head span { color:var(--muted); font-size:12px; }
+    .dose-main { display:flex; justify-content:space-between; align-items:end; padding:12px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }.dose-main b { display:block; font-size:23px; letter-spacing:-.03em; }.dose-main span { color:var(--muted); font-size:12px; }.prescribed { background:var(--lav); color:var(--violet); border-radius:10px; padding:7px 9px; font-weight:750; font-size:12px; }
+    .dose-row { display:flex; gap:8px; margin-top:12px; }.dose { flex:1; border-radius:14px; padding:10px; font-size:12px; font-weight:750; }.taken { background:var(--mint); color:var(--green); }.due { background:var(--amber); color:var(--amberink); }
+    button { border:0; font:inherit; }.primary { width:100%; border-radius:15px; padding:14px; margin-top:13px; color:#fff; background:var(--violet); font-weight:800; font-size:14px; box-shadow:0 6px 15px #6557c928; }
+    .check { display:flex; align-items:center; gap:12px; }.check-copy { flex:1; }.check-copy strong { font-size:16px; display:block; }.check-copy span { color:var(--muted); font-size:12px; }.arrow { color:var(--violet); font-size:22px; }
+    .section { color:var(--muted); font-weight:850; font-size:11px; letter-spacing:.1em; text-transform:uppercase; margin:19px 2px 8px; }
+    .scale-note { display:flex; justify-content:space-between; color:var(--muted); font-size:10px; margin:10px 1px 7px; }
+    .scale { display:flex; gap:6px; }.score { flex:1; height:43px; border-radius:13px; display:grid; place-items:center; background:#f1f3f7; font-weight:800; font-size:16px; }.score.on { color:#fff; background:var(--violet); box-shadow:0 5px 12px #6557c938; }
+    .metric { display:flex; align-items:center; margin-bottom:8px; }.metric:last-child{margin:0}.metric-name { width:104px; font-size:13px; font-weight:750; }.mini-scale { display:flex; gap:4px; flex:1; }.mini-score { flex:1; height:31px; border-radius:9px; background:#f1f3f7; display:grid; place-items:center; font-size:12px; font-weight:750; }.mini-score.on{background:var(--lav);color:var(--violet);outline:1.5px solid var(--violet)}
+    .dose-check { display:flex; align-items:center; gap:9px; padding:10px 0; border-top:1px solid var(--line); }.box { width:23px; height:23px; border-radius:8px; background:var(--violet); color:#fff; display:grid; place-items:center; font-size:12px; }.dose-check div:nth-child(2){flex:1}.dose-check b{display:block;font-size:13px}.dose-check span{font-size:11px;color:var(--muted)}.mg { font-size:13px; font-weight:800; }
+    .field { background:#f2f4f7; border-radius:13px; padding:11px 12px; color:var(--muted); margin-top:10px; font-size:13px; }
+    .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px; }.summary { border-radius:15px; padding:12px; }.summary b{display:block;font-size:19px}.summary span{font-size:11px}.purple{background:var(--lav);color:var(--violet)}.green{background:var(--mint);color:var(--green)}.amber{background:var(--amber);color:var(--amberink)}.rose{background:var(--rose);color:#a35363}
+    .trend { height:92px; position:relative; margin-top:9px; border-bottom:1px solid var(--line); background:repeating-linear-gradient(to bottom,transparent,transparent 22px,#eef0f4 23px); }.trend svg{width:100%;height:100%}.legend { display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-top:5px; }
+    nav { position:absolute; left:0; right:0; bottom:0; height:75px; background:#fff; border-top:1px solid var(--line); display:flex; justify-content:space-around; align-items:center; }.nav { text-align:center; color:#98a1b1; font-size:10px; font-weight:750; }.nav b{display:block;font-size:20px;margin-bottom:3px}.nav.on{color:var(--violet)}
+  </style>
+</head>
+<body><main class="page">
+  <div class="heading"><div><h1>Elle’s Journey — refreshed UI</h1><p>Clear dosage, numeric 0–5 ratings, and a calmer daily workflow</p></div><div class="badge">v1.2 preview</div></div>
+  <div class="phones">
+    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+      <div class="top"><div><div class="eyebrow">Elle’s Journey</div><h2>Good morning</h2><p class="sub">Tuesday, October 8</p></div><div class="avatar">🌿</div></div>
+      <div class="hero"><div class="hero-line"><strong>Week 4 of 12</strong><span class="day">Day 24</span></div><div class="bar"><span></span></div><div class="day">24 check-ins completed • 31% of trial</div></div>
+      <div class="card"><div class="card-head"><div class="icon">Rx</div><div><strong>Leucovorin</strong><span>Today’s medication</span></div></div><div class="dose-main"><div><span>Prescribed schedule</span><b>10 mg × 2</b></div><div class="prescribed">20 mg/day</div></div><div class="dose-row"><div class="dose taken">✓ Morning<br>10 mg • 8:05 AM</div><div class="dose due">○ Evening<br>10 mg • due 7 PM</div></div><button class="primary">Log evening dose</button></div>
+      <div class="card check"><div class="icon">5</div><div class="check-copy"><strong>Daily response check-in</strong><span>Communication, focus, mood + more</span></div><div class="arrow">›</div></div>
+      <div class="section">Next milestone</div><div class="card"><div class="check"><div class="icon">6</div><div class="check-copy"><strong>Week 6 doctor report</strong><span>Ready in 16 days</span></div><div class="arrow">›</div></div></div>
+    </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
+
+    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+      <div class="top"><div><div class="eyebrow">Week 4 • Day 24</div><h2>Daily check-in</h2><p class="sub">Compared with Elle’s usual baseline</p></div><div class="avatar">✓</div></div>
+      <div class="card"><div class="card-head"><div class="icon">↗</div><div><strong>Communication</strong><span>Words, gestures and expression</span></div></div><div class="scale-note"><span>0 • much lower</span><span>3 • typical</span><span>5 • much higher</span></div><div class="scale"><div class="score">0</div><div class="score">1</div><div class="score">2</div><div class="score">3</div><div class="score on">4</div><div class="score">5</div></div></div>
+      <div class="card"><div class="metric"><div class="metric-name">Engagement</div><div class="mini-scale"><div class="mini-score">0</div><div class="mini-score">1</div><div class="mini-score">2</div><div class="mini-score on">3</div><div class="mini-score">4</div><div class="mini-score">5</div></div></div><div class="metric"><div class="metric-name">Focus</div><div class="mini-scale"><div class="mini-score">0</div><div class="mini-score">1</div><div class="mini-score">2</div><div class="mini-score">3</div><div class="mini-score on">4</div><div class="mini-score">5</div></div></div><div class="metric"><div class="metric-name">Mood</div><div class="mini-scale"><div class="mini-score">0</div><div class="mini-score">1</div><div class="mini-score">2</div><div class="mini-score on">3</div><div class="mini-score">4</div><div class="mini-score">5</div></div></div><div class="metric"><div class="metric-name">Appetite</div><div class="mini-scale"><div class="mini-score">0</div><div class="mini-score">1</div><div class="mini-score">2</div><div class="mini-score on">3</div><div class="mini-score">4</div><div class="mini-score">5</div></div></div></div>
+      <div class="card"><div class="card-head"><div class="icon">Rx</div><div><strong>Doses taken today</strong><span>Prescribed: 10 mg twice daily</span></div></div><div class="dose-check"><div class="box">✓</div><div><b>Morning dose</b><span>8:05 AM</span></div><div class="mg">10 mg</div></div><div class="dose-check"><div class="box">✓</div><div><b>Evening dose</b><span>7:12 PM</span></div><div class="mg">10 mg</div></div></div>
+      <div class="field">Optional note for Elle’s doctor…</div><button class="primary">Save today’s check-in</button>
+    </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
+
+    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+      <div class="top"><div><div class="eyebrow">Clinical summary</div><h2>Progress</h2><p class="sub">24 daily check-ins recorded</p></div><div class="avatar">▥</div></div>
+      <div class="card"><div class="card-head"><div class="icon">Rx</div><div><strong>Medication overview</strong><span>Leucovorin • 10 mg twice daily</span></div></div><div class="summary-grid"><div class="summary green"><b>46 / 48</b><span>Doses recorded</span></div><div class="summary purple"><b>96%</b><span>Recorded adherence</span></div><div class="summary amber"><b>20 mg</b><span>Prescribed daily</span></div><div class="summary rose"><b>3</b><span>Side-effect days</span></div></div></div>
+      <div class="card"><div class="card-head"><div class="icon">↗</div><div><strong>Response trend</strong><span>Overall average across five measures</span></div></div><div class="trend"><svg viewBox="0 0 280 92"><polyline fill="none" stroke="#6557c9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="4,72 28,69 52,74 76,61 100,58 124,55 148,48 172,51 196,39 220,42 244,30 276,27"/></svg></div><div class="legend"><span>Week 1</span><span>Baseline = 3</span><span>Week 4</span></div></div>
+      <div class="section">Rating averages • 0–5</div><div class="card"><div class="metric"><div class="metric-name">Communication</div><div class="prescribed">3.8</div></div><div class="metric"><div class="metric-name">Engagement</div><div class="prescribed">3.5</div></div><div class="metric"><div class="metric-name">Focus</div><div class="prescribed">3.7</div></div><div class="metric"><div class="metric-name">Mood</div><div class="prescribed">3.2</div></div><div class="metric"><div class="metric-name">Appetite</div><div class="prescribed">3.0</div></div></div>
+      <button class="primary">Preview current doctor PDF</button>
+    </div><nav><div class="nav"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav on"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
+
+    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+      <div class="top"><div><div class="eyebrow">Set once • edit anytime</div><h2>Medication plan</h2><p class="sub">Copy the amounts from Elle’s prescription</p></div><div class="avatar">Rx</div></div>
+      <div class="card"><div class="card-head"><div class="icon">Rx</div><div><strong>Leucovorin prescription</strong><span>Used to prefill every daily check-in</span></div></div><div class="section" style="margin-top:8px">Frequency</div><div class="field" style="color:#17223b;font-weight:750">Twice daily⌄</div><div class="section">Dose 1 amount</div><div class="field" style="display:flex;justify-content:space-between;color:#17223b"><span>Enter prescribed amount</span><b>mg</b></div><div class="section">Dose 2 amount</div><div class="field" style="display:flex;justify-content:space-between;color:#17223b"><span>Enter prescribed amount</span><b>mg</b></div><div class="field">Optional prescription note…</div><button class="primary">Save medication plan</button></div>
+      <div class="card"><div class="card-head"><div class="icon">✓</div><div><strong>How daily logging works</strong><span>The prescribed amounts are prefilled</span></div></div><div class="dose-check"><div class="box">✓</div><div><b>Dose 1 given</b><span>Actual time recorded</span></div><div class="mg">prescribed mg</div></div><div class="dose-check"><div class="box">✓</div><div><b>Dose 2 given</b><span>Actual time recorded</span></div><div class="mg">prescribed mg</div></div></div>
+      <div class="card" style="background:#e1f5ec;color:#267759"><strong>The app never recommends a dose.</strong><div style="font-size:12px;margin-top:4px">Enter only what Elle’s prescriber instructed.</div></div>
+    </div><nav><div class="nav"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav on"><b>⚙</b>Settings</div></nav></section>
+  </div>
+</main></body>
+</html>

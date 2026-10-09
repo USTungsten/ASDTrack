@@ -17,17 +17,18 @@ import android.widget.TextView;
 import java.util.Locale;
 
 final class Ui {
-    static final int INK = Color.rgb(37, 48, 74);
-    static final int MUTED = Color.rgb(113, 128, 154);
-    static final int CREAM = Color.rgb(247, 245, 239);
+    static final int INK = Color.rgb(23, 34, 59);
+    static final int MUTED = Color.rgb(114, 128, 154);
+    static final int CREAM = Color.rgb(244, 246, 249);
     static final int WHITE = Color.WHITE;
-    static final int PURPLE = Color.rgb(112, 87, 199);
-    static final int LAVENDER = Color.rgb(235, 230, 255);
-    static final int MINT = Color.rgb(223, 244, 231);
-    static final int GREEN = Color.rgb(49, 133, 91);
-    static final int PEACH = Color.rgb(255, 232, 212);
-    static final int ROSE = Color.rgb(247, 223, 231);
-    static final int LIGHT = Color.rgb(242, 241, 246);
+    static final int PURPLE = Color.rgb(101, 87, 201);
+    static final int PURPLE_LIGHT = Color.rgb(137, 123, 228);
+    static final int LAVENDER = Color.rgb(238, 235, 255);
+    static final int MINT = Color.rgb(225, 245, 236);
+    static final int GREEN = Color.rgb(38, 119, 89);
+    static final int PEACH = Color.rgb(255, 240, 216);
+    static final int ROSE = Color.rgb(255, 240, 242);
+    static final int LIGHT = Color.rgb(241, 243, 247);
 
     private Ui() {}
 
@@ -39,6 +40,19 @@ final class Ui {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setColor(color);
         drawable.setCornerRadius(dp(context, (int) radiusDp));
+        return drawable;
+    }
+
+    static GradientDrawable gradient(int startColor, int endColor, float radiusDp, Context context) {
+        GradientDrawable drawable = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR, new int[]{startColor, endColor});
+        drawable.setCornerRadius(dp(context, (int) radiusDp));
+        return drawable;
+    }
+
+    static GradientDrawable borderedBackground(int color, int borderColor, float radiusDp, Context context) {
+        GradientDrawable drawable = background(color, radiusDp, context);
+        drawable.setStroke(dp(context, 1), borderColor);
         return drawable;
     }
 
@@ -65,7 +79,7 @@ final class Ui {
     }
 
     static TextView title(Context context, String value) {
-        TextView view = text(context, value, 27, INK);
+        TextView view = text(context, value, 28, INK);
         view.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         return view;
     }
@@ -87,8 +101,8 @@ final class Ui {
     static LinearLayout card(Context context) {
         LinearLayout card = vertical(context);
         card.setPadding(dp(context, 18), dp(context, 17), dp(context, 18), dp(context, 17));
-        card.setBackground(background(WHITE, 20, context));
-        card.setElevation(dp(context, 2));
+        card.setBackground(borderedBackground(WHITE, Color.rgb(237, 240, 245), 21, context));
+        card.setElevation(dp(context, 1));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         params.setMargins(0, 0, 0, dp(context, 14));

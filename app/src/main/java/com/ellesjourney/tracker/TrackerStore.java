@@ -34,7 +34,12 @@ final class TrackerStore {
         profile.startDate = LocalDate.now().toString();
         profile.medication = "Leucovorin";
         profile.defaultDose = "";
+        profile.morningDose = "";
+        profile.eveningDose = "";
+        profile.doseUnit = "mg";
+        profile.dosesPerDay = 2;
         profile.doctorName = "";
+        profile.updatedAt = 0;
         try {
             String raw = preferences.getString(PROFILE, null);
             if (raw != null) {
@@ -43,7 +48,12 @@ final class TrackerStore {
                 profile.startDate = json.optString("startDate", profile.startDate);
                 profile.medication = json.optString("medication", profile.medication);
                 profile.defaultDose = json.optString("defaultDose", "");
+                profile.morningDose = json.optString("morningDose", "");
+                profile.eveningDose = json.optString("eveningDose", "");
+                profile.doseUnit = json.optString("doseUnit", "mg");
+                profile.dosesPerDay = json.optInt("dosesPerDay", 2);
                 profile.doctorName = json.optString("doctorName", "");
+                profile.updatedAt = json.optLong("updatedAt", 0);
             }
         } catch (JSONException ignored) {
         }
@@ -53,11 +63,17 @@ final class TrackerStore {
     void saveProfile(Profile profile) {
         JSONObject json = new JSONObject();
         try {
+            profile.updatedAt = System.currentTimeMillis();
             json.put("childName", profile.childName);
             json.put("startDate", profile.startDate);
             json.put("medication", profile.medication);
             json.put("defaultDose", profile.defaultDose);
+            json.put("morningDose", profile.morningDose);
+            json.put("eveningDose", profile.eveningDose);
+            json.put("doseUnit", profile.doseUnit);
+            json.put("dosesPerDay", profile.dosesPerDay);
             json.put("doctorName", profile.doctorName);
+            json.put("updatedAt", profile.updatedAt);
             preferences.edit().putString(PROFILE, json.toString()).apply();
         } catch (JSONException ignored) {
         }
@@ -129,6 +145,7 @@ final class TrackerStore {
             JSONObject root = new JSONObject(raw);
             if (!"elles-journey-backup-v1".equals(root.optString("format"))) return false;
             List<DailyEntry> merged = getEntries();
+            boolean hadLocalEntries = !merged.isEmpty();
             JSONArray imported = root.getJSONArray("entries");
             for (int index = 0; index < imported.length(); index++) {
                 DailyEntry incoming = DailyEntry.fromJson(imported.getJSONObject(index));
@@ -146,7 +163,13 @@ final class TrackerStore {
             JSONArray mergedJson = new JSONArray();
             for (DailyEntry entry : merged) mergedJson.put(entry.toJson());
             SharedPreferences.Editor editor = preferences.edit().putString(ENTRIES, mergedJson.toString());
-            if (!hasProfile()) editor.putString(PROFILE, root.getJSONObject("profile").toString());
+            JSONObject incomingProfile = root.getJSONObject("profile");
+            JSONObject localProfile = new JSONObject(preferences.getString(PROFILE, "{}"));
+            long incomingUpdated = incomingProfile.optLong("updatedAt", 0);
+            long localUpdated = localProfile.optLong("updatedAt", 0);
+            if (!hasProfile() || !hadLocalEntries || incomingUpdated > localUpdated) {
+                editor.putString(PROFILE, incomingProfile.toString());
+            }
             editor.apply();
             return true;
         } catch (JSONException exception) {
@@ -159,13 +182,24 @@ final class TrackerStore {
         String startDate;
         String medication;
         String defaultDose;
+        String morningDose;
+        String eveningDose;
+        String doseUnit;
+        int dosesPerDay;
         String doctorName;
+        long updatedAt;
     }
 
     static final class DailyEntry {
         String date = LocalDate.now().toString();
         boolean doseTaken;
         String dose = "";
+        boolean morningDoseTaken;
+        boolean eveningDoseTaken;
+        String morningDose = "";
+        String eveningDose = "";
+        String morningDoseTime = "";
+        String eveningDoseTime = "";
         int communication = 3;
         int engagement = 3;
         int focus = 3;
@@ -185,6 +219,12 @@ final class TrackerStore {
                 json.put("date", date);
                 json.put("doseTaken", doseTaken);
                 json.put("dose", dose);
+                json.put("morningDoseTaken", morningDoseTaken);
+                json.put("eveningDoseTaken", eveningDoseTaken);
+                json.put("morningDose", morningDose);
+                json.put("eveningDose", eveningDose);
+                json.put("morningDoseTime", morningDoseTime);
+                json.put("eveningDoseTime", eveningDoseTime);
                 json.put("communication", communication);
                 json.put("engagement", engagement);
                 json.put("focus", focus);
@@ -207,6 +247,13 @@ final class TrackerStore {
             entry.date = json.optString("date", entry.date);
             entry.doseTaken = json.optBoolean("doseTaken");
             entry.dose = json.optString("dose", "");
+            boolean hasStructuredDose = json.has("morningDoseTaken") || json.has("eveningDoseTaken");
+            entry.morningDoseTaken = json.optBoolean("morningDoseTaken", !hasStructuredDose && entry.doseTaken);
+            entry.eveningDoseTaken = json.optBoolean("eveningDoseTaken");
+            entry.morningDose = json.optString("morningDose", !hasStructuredDose ? entry.dose : "");
+            entry.eveningDose = json.optString("eveningDose", "");
+            entry.morningDoseTime = json.optString("morningDoseTime", "");
+            entry.eveningDoseTime = json.optString("eveningDoseTime", "");
             entry.communication = json.optInt("communication", 3);
             entry.engagement = json.optInt("engagement", 3);
             entry.focus = json.optInt("focus", 3);
@@ -224,6 +271,17 @@ final class TrackerStore {
 
         boolean hasSideEffects() {
             return sleepChange || tummyUpset || headache || irritability || otherSideEffect;
+        }
+
+        boolean hasAnyDose() {
+            return morningDoseTaken || eveningDoseTaken || doseTaken;
+        }
+
+        int dosesTakenCount() {
+            int count = 0;
+            if (morningDoseTaken) count++;
+            if (eveningDoseTaken) count++;
+            return count == 0 && doseTaken ? 1 : count;
         }
     }
 }

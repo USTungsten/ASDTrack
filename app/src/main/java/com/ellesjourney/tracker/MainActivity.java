@@ -19,6 +19,8 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -81,9 +83,20 @@ public class MainActivity extends Activity {
         page.addView(Ui.heading(this, "Child’s name"));
         page.addView(child);
 
-        EditText dose = Ui.input(this, "Example: 5 mg morning and evening");
-        page.addView(Ui.heading(this, "Prescribed dose (optional)"));
-        page.addView(dose);
+        page.addView(Ui.heading(this, "Prescribed leucovorin dosage"));
+        page.addView(Ui.text(this, "Enter the amount for each scheduled dose. You can change this later.", 13, Ui.MUTED));
+        Spinner frequency = frequencySpinner(2);
+        page.addView(frequency);
+        LinearLayout doseRow = Ui.horizontal(this);
+        EditText morningDose = Ui.decimalInput(this, "Dose 1 (mg)");
+        EditText eveningDose = Ui.decimalInput(this, "Dose 2 (mg)");
+        LinearLayout.LayoutParams morningParams = new LinearLayout.LayoutParams(0, Ui.dp(this, 52), 1);
+        morningParams.setMargins(0, Ui.dp(this, 7), Ui.dp(this, 5), Ui.dp(this, 13));
+        LinearLayout.LayoutParams eveningParams = new LinearLayout.LayoutParams(0, Ui.dp(this, 52), 1);
+        eveningParams.setMargins(Ui.dp(this, 5), Ui.dp(this, 7), 0, Ui.dp(this, 13));
+        doseRow.addView(morningDose, morningParams);
+        doseRow.addView(eveningDose, eveningParams);
+        page.addView(doseRow);
 
         TextView startLabel = Ui.heading(this, "Trial start date");
         page.addView(startLabel);
@@ -109,7 +122,12 @@ public class MainActivity extends Activity {
             profile.childName = valueOr(child, "Elle");
             profile.startDate = selectedStart[0].toString();
             profile.medication = "Leucovorin";
-            profile.defaultDose = dose.getText().toString().trim();
+            profile.morningDose = morningDose.getText().toString().trim();
+            profile.eveningDose = eveningDose.getText().toString().trim();
+            profile.doseUnit = "mg";
+            profile.dosesPerDay = frequency.getSelectedItemPosition() + 1;
+            if (profile.dosesPerDay == 2 && profile.eveningDose.isEmpty()) profile.eveningDose = profile.morningDose;
+            profile.defaultDose = prescribedDoseSummary(profile);
             profile.doctorName = "";
             store.saveProfile(profile);
             showApp("Today");
@@ -194,20 +212,115 @@ public class MainActivity extends Activity {
         page.addView(row);
     }
 
+    private void addTodayHeader(LinearLayout page, String title, String subtitle, String icon) {
+        LinearLayout row = Ui.horizontal(this);
+        LinearLayout words = Ui.vertical(this);
+        TextView eyebrow = Ui.text(this, "ELLE’S JOURNEY", 11, Ui.PURPLE);
+        eyebrow.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        eyebrow.setLetterSpacing(.1f);
+        words.addView(eyebrow);
+        words.addView(Ui.title(this, title));
+        words.addView(Ui.text(this, subtitle, 15, Ui.MUTED));
+        row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        TextView badge = Ui.text(this, icon, 23, Ui.PURPLE);
+        badge.setGravity(Gravity.CENTER);
+        badge.setBackground(Ui.borderedBackground(Ui.LAVENDER, 0xFFDFD9FF, 16, this));
+        row.addView(badge, new LinearLayout.LayoutParams(Ui.dp(this, 48), Ui.dp(this, 48)));
+        Ui.setMargins(row, 0, 0, 0, 18);
+        page.addView(row);
+    }
+
+    private LinearLayout cardHeader(String iconText, String title, String subtitle) {
+        LinearLayout row = Ui.horizontal(this);
+        TextView icon = Ui.text(this, iconText, iconText.length() > 1 ? 16 : 20, Ui.PURPLE);
+        icon.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        icon.setGravity(Gravity.CENTER);
+        icon.setBackground(Ui.background(Ui.LAVENDER, 13, this));
+        row.addView(icon, new LinearLayout.LayoutParams(Ui.dp(this, 42), Ui.dp(this, 42)));
+        LinearLayout words = Ui.vertical(this);
+        words.setPadding(Ui.dp(this, 11), 0, 0, 0);
+        words.addView(Ui.heading(this, title));
+        words.addView(Ui.text(this, subtitle, 12, Ui.MUTED));
+        row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        Ui.setMargins(row, 0, 0, 0, 12);
+        return row;
+    }
+
+    private String greeting() {
+        int hour = java.time.LocalTime.now().getHour();
+        if (hour < 12) return "Good morning";
+        if (hour < 17) return "Good afternoon";
+        return "Good evening";
+    }
+
+    private Spinner frequencySpinner(int dosesPerDay) {
+        Spinner spinner = new Spinner(this);
+        String[] choices = {"Once daily", "Twice daily"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, choices);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(Math.max(0, Math.min(1, dosesPerDay - 1)));
+        spinner.setPadding(Ui.dp(this, 10), 0, Ui.dp(this, 10), 0);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(this, 52));
+        params.setMargins(0, Ui.dp(this, 7), 0, Ui.dp(this, 8));
+        spinner.setLayoutParams(params);
+        return spinner;
+    }
+
+    private boolean hasStructuredDose(TrackerStore.Profile profile) {
+        return profile.morningDose != null && !profile.morningDose.isEmpty();
+    }
+
+    private String prescribedDoseSummary(TrackerStore.Profile profile) {
+        String unit = profile.doseUnit == null || profile.doseUnit.isEmpty() ? "mg" : profile.doseUnit;
+        if (profile.morningDose == null || profile.morningDose.isEmpty()) return profile.defaultDose == null ? "" : profile.defaultDose;
+        if (profile.dosesPerDay < 2) return profile.morningDose + " " + unit + " once daily";
+        if (profile.morningDose.equals(profile.eveningDose)) return profile.morningDose + " " + unit + " × 2";
+        return profile.morningDose + " " + unit + " + " + profile.eveningDose + " " + unit;
+    }
+
+    private String dailyDoseTotal(TrackerStore.Profile profile) {
+        try {
+            double first = Double.parseDouble(profile.morningDose);
+            double second = profile.dosesPerDay < 2 || profile.eveningDose == null || profile.eveningDose.isEmpty()
+                    ? 0 : Double.parseDouble(profile.eveningDose);
+            return trimFloat((float) (first + second)) + " " + profile.doseUnit + "/day";
+        } catch (Exception ignored) {
+            return "Dose set";
+        }
+    }
+
+    private boolean prescribedDosesComplete(TrackerStore.DailyEntry entry, TrackerStore.Profile profile) {
+        return entry.morningDoseTaken && (profile.dosesPerDay < 2 || entry.eveningDoseTaken);
+    }
+
+    private String dailyEntryDoseSummary(TrackerStore.DailyEntry entry, String unitValue) {
+        String unit = unitValue == null || unitValue.isEmpty() ? "mg" : unitValue;
+        List<String> doses = new ArrayList<>();
+        if (entry.morningDoseTaken) doses.add((entry.morningDose.isEmpty() ? "amount not entered" : entry.morningDose + " " + unit) + " first dose");
+        if (entry.eveningDoseTaken) doses.add((entry.eveningDose.isEmpty() ? "amount not entered" : entry.eveningDose + " " + unit) + " second dose");
+        return String.join(" + ", doses);
+    }
+
+    private float responseAverage(TrackerStore.DailyEntry entry) {
+        return (entry.communication + entry.engagement + entry.focus + entry.mood + entry.appetite) / 5f;
+    }
+
     private View todayScreen() {
         ScrollView scroll = scrollPage();
         LinearLayout page = page(scroll);
         TrackerStore.Profile profile = store.getProfile();
         LocalDate today = LocalDate.now();
-        addHeader(page, "Hi, " + profile.childName + "’s family", friendlyDate.format(today), "🌱");
+        addTodayHeader(page, greeting(), friendlyDate.format(today), "🌿");
 
         LinearLayout progressCard = Ui.card(this);
-        progressCard.setBackground(Ui.background(Ui.PURPLE, 22, this));
+        progressCard.setBackground(Ui.gradient(Ui.PURPLE, Ui.PURPLE_LIGHT, 24, this));
         LinearLayout top = Ui.horizontal(this);
         TextView week = Ui.heading(this, "Week " + store.currentWeek() + " of 12");
         week.setTextColor(Ui.WHITE);
-        TextView percent = Ui.text(this, Math.round(store.currentDay() / 84f * 100) + "%", 16, Ui.WHITE);
-        percent.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        TextView percent = Ui.text(this, "Day " + store.currentDay(), 14, 0xE6FFFFFF);
         top.addView(week, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         top.addView(percent);
         progressCard.addView(top);
@@ -219,22 +332,62 @@ public class MainActivity extends Activity {
         Ui.setMargins(bar, 0, 12, 0, 6);
         progressCard.addView(bar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(this, 8)));
-        TextView count = Ui.text(this, store.getEntries().size() + " daily check-ins completed", 13, 0xE6FFFFFF);
+        TextView count = Ui.text(this, store.getEntries().size() + " check-ins completed • "
+                + Math.round(store.currentDay() / 84f * 100) + "% of trial", 13, 0xE6FFFFFF);
         progressCard.addView(count);
         page.addView(progressCard);
 
         TrackerStore.DailyEntry todayEntry = store.getEntry(today.toString());
+        LinearLayout medication = Ui.card(this);
+        medication.addView(cardHeader("Rx", "Leucovorin", "Today’s medication"));
+        if (hasStructuredDose(profile)) {
+            LinearLayout prescribed = Ui.horizontal(this);
+            LinearLayout details = Ui.vertical(this);
+            details.addView(Ui.text(this, "PRESCRIBED SCHEDULE", 10, Ui.MUTED));
+            TextView doseTitle = Ui.heading(this, prescribedDoseSummary(profile));
+            doseTitle.setTextSize(21);
+            details.addView(doseTitle);
+            prescribed.addView(details, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            TextView total = statusPill(dailyDoseTotal(profile), Ui.LAVENDER, Ui.PURPLE);
+            prescribed.addView(total, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Ui.dp(this, 38)));
+            medication.addView(prescribed);
+
+            LinearLayout doseStatus = Ui.horizontal(this);
+            boolean firstTaken = todayEntry != null && todayEntry.morningDoseTaken;
+            boolean secondTaken = todayEntry != null && todayEntry.eveningDoseTaken;
+            doseStatus.addView(statusPill((firstTaken ? "✓ " : "○ ") + "First  " + profile.morningDose + " " + profile.doseUnit,
+                    firstTaken ? Ui.MINT : Ui.PEACH, firstTaken ? Ui.GREEN : 0xFF9A641F),
+                    new LinearLayout.LayoutParams(0, Ui.dp(this, 48), 1));
+            if (profile.dosesPerDay >= 2) {
+                doseStatus.addView(statusPill((secondTaken ? "✓ " : "○ ") + "Second  " + profile.eveningDose + " " + profile.doseUnit,
+                        secondTaken ? Ui.MINT : Ui.PEACH, secondTaken ? Ui.GREEN : 0xFF9A641F),
+                        new LinearLayout.LayoutParams(0, Ui.dp(this, 48), 1));
+            }
+            medication.addView(doseStatus);
+            Button logDose = Ui.primaryButton(this, todayEntry != null && prescribedDosesComplete(todayEntry, profile)
+                    ? "Review today’s doses" : "Log today’s dose");
+            logDose.setOnClickListener(view -> showEntryEditor(today));
+            medication.addView(logDose);
+        } else {
+            medication.addView(Ui.text(this,
+                    profile.defaultDose.isEmpty() ? "Add the prescribed dose to show the daily medication schedule."
+                            : "Current note: " + profile.defaultDose + "\nAdd structured dose amounts for clearer tracking.",
+                    14, Ui.MUTED));
+            Button addDose = Ui.secondaryButton(this, "Add dosage in Settings");
+            addDose.setOnClickListener(view -> renderTab("Settings"));
+            medication.addView(addDose);
+        }
+        page.addView(medication);
+
         LinearLayout checkin = Ui.card(this);
-        checkin.addView(Ui.heading(this, todayEntry == null ? "Today’s check-in" : "Today is logged ✓"));
-        checkin.addView(Ui.text(this,
-                todayEntry == null ? "About one minute • You can edit it later" : "Tap below to review or make a change",
-                14, Ui.MUTED));
-        Button log = Ui.primaryButton(this, todayEntry == null ? "+  Log today" : "Edit today’s check-in");
+        checkin.addView(cardHeader("5", todayEntry == null ? "Daily response check-in" : "Today’s response is logged",
+                "Communication, engagement, focus, mood and appetite • 0–5"));
+        Button log = Ui.primaryButton(this, todayEntry == null ? "Start daily check-in" : "Edit today’s check-in");
         log.setOnClickListener(view -> showEntryEditor(today));
         checkin.addView(log);
         if (todayEntry != null) {
             LinearLayout quick = Ui.horizontal(this);
-            quick.addView(statusPill(todayEntry.doseTaken ? "✓ Dose taken" : "Dose not marked", Ui.MINT, Ui.GREEN),
+            quick.addView(statusPill("Response " + trimFloat(responseAverage(todayEntry)) + "/5", Ui.LAVENDER, Ui.PURPLE),
                     new LinearLayout.LayoutParams(0, Ui.dp(this, 48), 1));
             quick.addView(statusPill("☾ Sleep " + trimFloat(todayEntry.sleepHours) + "h", Ui.PEACH, 0xFFA65E24),
                     new LinearLayout.LayoutParams(0, Ui.dp(this, 48), 1));
@@ -242,7 +395,7 @@ public class MainActivity extends Activity {
         }
         page.addView(checkin);
 
-        page.addView(Ui.section(this, "Coming up"));
+        page.addView(Ui.section(this, "Next milestone"));
         LinearLayout report = Ui.card(this);
         report.addView(Ui.heading(this, store.currentDay() < 42 ? "Week 6 doctor report" : "Week 6 report is ready"));
         int remaining = Math.max(0, 42 - store.currentDay());
@@ -281,21 +434,33 @@ public class MainActivity extends Activity {
         TrackerStore.DailyEntry existing = store.getEntry(date.toString());
         TrackerStore.DailyEntry entry = existing == null ? new TrackerStore.DailyEntry() : existing;
         entry.date = date.toString();
+        TrackerStore.Profile profile = store.getProfile();
 
         LinearLayout medicine = Ui.card(this);
-        CheckBox doseTaken = checkbox("Medication taken", entry.doseTaken);
-        EditText dose = Ui.input(this, "Dose taken, e.g. 5 mg twice daily");
-        dose.setText(entry.dose.isEmpty() ? store.getProfile().defaultDose : entry.dose);
-        medicine.addView(Ui.heading(this, "Medication"));
-        medicine.addView(doseTaken);
-        medicine.addView(dose);
+        medicine.addView(cardHeader("Rx", "Leucovorin doses",
+                hasStructuredDose(profile) ? "Prescribed: " + prescribedDoseSummary(profile)
+                        : "Enter the amount actually given"));
+        CheckBox firstDoseTaken = checkbox(profile.dosesPerDay < 2 ? "Daily dose taken" : "First dose taken",
+                entry.morningDoseTaken || (entry.doseTaken && !entry.eveningDoseTaken));
+        EditText firstDose = Ui.decimalInput(this, "First dose amount (mg)");
+        firstDose.setText(!entry.morningDose.isEmpty() ? entry.morningDose : profile.morningDose);
+        medicine.addView(firstDoseTaken);
+        medicine.addView(firstDose);
+        boolean showSecondDose = profile.dosesPerDay >= 2 || entry.eveningDoseTaken || !entry.eveningDose.isEmpty();
+        CheckBox secondDoseTaken = checkbox("Second dose taken", entry.eveningDoseTaken);
+        EditText secondDose = Ui.decimalInput(this, "Second dose amount (mg)");
+        secondDose.setText(!entry.eveningDose.isEmpty() ? entry.eveningDose : profile.eveningDose);
+        if (showSecondDose) {
+            medicine.addView(secondDoseTaken);
+            medicine.addView(secondDose);
+        }
         page.addView(medicine);
 
-        RatingPicker communication = ratingCard(page, "Communication", "Compared with usual baseline", entry.communication);
+        RatingPicker communication = ratingCard(page, "Communication", "Words, gestures and expression", entry.communication);
         RatingPicker engagement = ratingCard(page, "Social engagement", "Connection and interaction", entry.engagement);
         RatingPicker focus = ratingCard(page, "Focus", "Attention and participation", entry.focus);
-        RatingPicker mood = ratingCard(page, "Overall mood", "How the day felt overall", entry.mood);
-        RatingPicker appetite = ratingCard(page, "Appetite", "Compared with usual", entry.appetite);
+        RatingPicker mood = ratingCard(page, "Overall mood", "Compared with Elle’s typical mood", entry.mood);
+        RatingPicker appetite = ratingCard(page, "Appetite", "Compared with Elle’s usual appetite", entry.appetite);
 
         LinearLayout sleepCard = Ui.card(this);
         TextView sleepValue = Ui.heading(this, "Sleep: " + trimFloat(entry.sleepHours) + " hours");
@@ -335,8 +500,17 @@ public class MainActivity extends Activity {
 
         Button save = Ui.primaryButton(this, "Save check-in");
         save.setOnClickListener(view -> {
-            entry.doseTaken = doseTaken.isChecked();
-            entry.dose = dose.getText().toString().trim();
+            boolean wasFirstTaken = entry.morningDoseTaken;
+            boolean wasSecondTaken = entry.eveningDoseTaken;
+            entry.morningDoseTaken = firstDoseTaken.isChecked();
+            entry.eveningDoseTaken = showSecondDose && secondDoseTaken.isChecked();
+            entry.morningDose = firstDose.getText().toString().trim();
+            entry.eveningDose = showSecondDose ? secondDose.getText().toString().trim() : "";
+            entry.doseTaken = entry.morningDoseTaken || entry.eveningDoseTaken;
+            entry.dose = dailyEntryDoseSummary(entry, profile.doseUnit);
+            String timeNow = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"));
+            if (entry.morningDoseTaken && !wasFirstTaken && entry.morningDoseTime.isEmpty()) entry.morningDoseTime = timeNow;
+            if (entry.eveningDoseTaken && !wasSecondTaken && entry.eveningDoseTime.isEmpty()) entry.eveningDoseTime = timeNow;
             entry.communication = communication.value;
             entry.engagement = engagement.value;
             entry.focus = focus.value;
@@ -366,6 +540,17 @@ public class MainActivity extends Activity {
         LinearLayout card = Ui.card(this);
         card.addView(Ui.heading(this, title));
         card.addView(Ui.text(this, subtitle, 13, Ui.MUTED));
+        LinearLayout legend = Ui.horizontal(this);
+        TextView low = Ui.text(this, "0 • much lower", 10, Ui.MUTED);
+        TextView baseline = Ui.text(this, "3 • typical", 10, Ui.MUTED);
+        TextView high = Ui.text(this, "5 • much higher", 10, Ui.MUTED);
+        legend.addView(low, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        baseline.setGravity(Gravity.CENTER);
+        legend.addView(baseline, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        high.setGravity(Gravity.END);
+        legend.addView(high, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        Ui.setMargins(legend, 0, 10, 0, 0);
+        card.addView(legend);
         RatingPicker picker = new RatingPicker(selected);
         card.addView(picker.row);
         page.addView(card);
@@ -378,8 +563,8 @@ public class MainActivity extends Activity {
         int value;
 
         RatingPicker(int selected) {
-            value = selected;
-            String[] labels = {"−−", "−", "•", "+", "++"};
+            value = Math.max(0, Math.min(5, selected));
+            String[] labels = {"0", "1", "2", "3", "4", "5"};
             for (int index = 0; index < labels.length; index++) {
                 Button button = new Button(MainActivity.this);
                 button.setText(labels[index]);
@@ -388,7 +573,7 @@ public class MainActivity extends Activity {
                 button.setMinWidth(0);
                 button.setMinimumWidth(0);
                 button.setPadding(0, 0, 0, 0);
-                final int chosen = index + 1;
+                final int chosen = index;
                 button.setOnClickListener(view -> { value = chosen; refresh(); });
                 buttons.add(button);
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, Ui.dp(MainActivity.this, 52), 1);
@@ -401,11 +586,11 @@ public class MainActivity extends Activity {
 
         void refresh() {
             for (int index = 0; index < buttons.size(); index++) {
-                boolean selected = index + 1 == value;
+                boolean selected = index == value;
                 Button button = buttons.get(index);
-                button.setTextColor(selected ? Ui.PURPLE : Ui.INK);
+                button.setTextColor(selected ? Ui.WHITE : Ui.INK);
                 button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
-                button.setBackground(Ui.background(selected ? Ui.LAVENDER : Ui.LIGHT, 15, MainActivity.this));
+                button.setBackground(Ui.background(selected ? Ui.PURPLE : Ui.LIGHT, 13, MainActivity.this));
             }
         }
     }
@@ -443,9 +628,10 @@ public class MainActivity extends Activity {
                         "Overall response " + trimFloat(average) + "/5  •  Sleep " + trimFloat(entry.sleepHours) + "h",
                         14, Ui.MUTED));
                 card.addView(Ui.text(this,
-                        entry.doseTaken ? "✓ Medication taken" + (entry.dose.isEmpty() ? "" : " • " + entry.dose)
-                                : "Medication not marked taken",
-                        14, entry.doseTaken ? Ui.GREEN : Ui.MUTED));
+                        entry.hasAnyDose() ? "✓ " + entry.dosesTakenCount() + " dose(s) recorded"
+                                + (entry.dose.isEmpty() ? "" : " • " + entry.dose)
+                                : "No doses marked taken",
+                        14, entry.hasAnyDose() ? Ui.GREEN : Ui.MUTED));
                 if (entry.hasSideEffects()) card.addView(Ui.text(this, "Possible side effects noted", 14, 0xFF984762));
                 if (!entry.note.isEmpty()) card.addView(Ui.text(this, "“" + entry.note + "”", 14, Ui.INK));
                 card.setOnClickListener(view -> showEntryEditor(date));
@@ -460,6 +646,16 @@ public class MainActivity extends Activity {
         LinearLayout page = page(scroll);
         addHeader(page, "Doctor reports", "Clear summaries to share at visits", "▥");
         List<TrackerStore.DailyEntry> entries = store.getEntries();
+        TrackerStore.Profile profile = store.getProfile();
+        LinearLayout medication = Ui.card(this);
+        medication.addView(cardHeader("Rx", "Medication overview",
+                hasStructuredDose(profile) ? "Leucovorin • " + prescribedDoseSummary(profile) : "Leucovorin"));
+        int recordedDoses = 0;
+        for (TrackerStore.DailyEntry entry : entries) recordedDoses += entry.dosesTakenCount();
+        medication.addView(Ui.text(this,
+                recordedDoses + " doses recorded" + (hasStructuredDose(profile) ? " • " + dailyDoseTotal(profile) + " prescribed" : ""),
+                14, Ui.GREEN));
+        page.addView(medication);
         LinearLayout glance = Ui.card(this);
         glance.addView(Ui.heading(this, "At a glance"));
         if (entries.isEmpty()) {
@@ -549,11 +745,20 @@ public class MainActivity extends Activity {
         addHeader(page, "Settings", "Profile, dates and private backup", "⚙");
 
         LinearLayout profileCard = Ui.card(this);
-        profileCard.addView(Ui.heading(this, "Trial details"));
+        profileCard.addView(cardHeader("Rx", "Trial and dosage details", "Used throughout daily logs and doctor reports"));
         EditText child = Ui.input(this, "Child’s name"); child.setText(profile.childName);
-        EditText dose = Ui.input(this, "Prescribed dose"); dose.setText(profile.defaultDose);
+        Spinner frequency = frequencySpinner(profile.dosesPerDay);
+        EditText morningDose = Ui.decimalInput(this, "First dose amount (mg)"); morningDose.setText(profile.morningDose);
+        EditText eveningDose = Ui.decimalInput(this, "Second dose amount (mg)"); eveningDose.setText(profile.eveningDose);
+        EditText doseNote = Ui.input(this, "Additional dosage note (optional)"); doseNote.setText(profile.defaultDose);
         EditText doctor = Ui.input(this, "Doctor’s name (optional)"); doctor.setText(profile.doctorName);
-        profileCard.addView(child); profileCard.addView(dose); profileCard.addView(doctor);
+        profileCard.addView(child);
+        profileCard.addView(Ui.text(this, "LEUCOVORIN DOSE PER ADMINISTRATION", 10, Ui.MUTED));
+        profileCard.addView(frequency);
+        profileCard.addView(morningDose);
+        profileCard.addView(eveningDose);
+        profileCard.addView(doseNote);
+        profileCard.addView(doctor);
         final LocalDate[] selectedStart = {LocalDate.parse(profile.startDate)};
         Button dateButton = Ui.secondaryButton(this, "Start: " + friendlyDate.format(selectedStart[0]));
         dateButton.setOnClickListener(view -> pickDate(selectedStart[0], date -> {
@@ -564,7 +769,12 @@ public class MainActivity extends Activity {
         Button save = Ui.primaryButton(this, "Save trial details");
         save.setOnClickListener(view -> {
             profile.childName = valueOr(child, "Elle");
-            profile.defaultDose = dose.getText().toString().trim();
+            profile.morningDose = morningDose.getText().toString().trim();
+            profile.eveningDose = eveningDose.getText().toString().trim();
+            profile.doseUnit = "mg";
+            profile.dosesPerDay = frequency.getSelectedItemPosition() + 1;
+            if (profile.dosesPerDay == 2 && profile.eveningDose.isEmpty()) profile.eveningDose = profile.morningDose;
+            profile.defaultDose = doseNote.getText().toString().trim();
             profile.doctorName = doctor.getText().toString().trim();
             profile.startDate = selectedStart[0].toString();
             store.saveProfile(profile);
