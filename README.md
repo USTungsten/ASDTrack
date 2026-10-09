@@ -4,7 +4,7 @@ A private, local Android tracker for a 12-week leucovorin trial.
 
 ## Install on each phone
 
-1. Send `Elle-Journey-v1.3.apk` to the Android phone.
+1. Send `Elle-Journey-v1.3.1.apk` to the Android phone.
 2. Open the file on the phone.
 3. If Android asks, allow installs from the app used to open the file.
 4. Tap **Install**, then open **Elle's Journey**.
@@ -12,6 +12,12 @@ A private, local Android tracker for a 12-week leucovorin trial.
 Android may show a Play Protect warning because this is a private APK rather than a Play Store app. The app uses internet access only for optional encrypted GitHub sync. Voice-to-text and local video use Android's system speech and camera apps; Elle's Journey does not request continuous microphone or camera access.
 
 When updating from an earlier version, install the new APK directly over the existing app. Do not uninstall first; Android preserves the local check-ins and secure sync settings during an update.
+
+## Version 1.3.1
+
+- Rebuilt the bottom menu as large, reliable touch targets.
+- Added a clear lavender active tab while keeping inactive tabs dark and readable.
+- Made the browser preview interactive, including Day 1 saving and History.
 
 ## Version 1.3
 
@@ -25,7 +31,7 @@ When updating from an earlier version, install the new APK directly over the exi
 - Expanded doctor PDFs with weekly communication, bowel context, and care-team notes separated by source.
 - Versioned encrypted sync records to prevent an older app from overwriting v1.3-only data.
 
-Update **both phones to v1.3 before syncing**. Older versions cannot understand the new weekly and care-team records.
+Update **both phones to v1.3.1 before syncing**. Older versions cannot understand all current records.
 
 ## Version 1.2
 

@@ -201,12 +201,31 @@ public class MainActivity extends Activity {
     }
 
     private void addNavItem(String icon, String label) {
-        TextView item = Ui.text(this, icon + "\n" + label, 13,
-                label.equals(activeTab) ? Ui.PURPLE : Ui.MUTED);
+        boolean selected = label.equals(activeTab);
+        LinearLayout item = Ui.vertical(this);
         item.setGravity(Gravity.CENTER);
-        item.setTypeface(Typeface.DEFAULT, label.equals(activeTab) ? Typeface.BOLD : Typeface.NORMAL);
+        item.setPadding(Ui.dp(this, 4), Ui.dp(this, 6), Ui.dp(this, 4), Ui.dp(this, 5));
+        item.setBackground(Ui.background(selected ? Ui.LAVENDER : Ui.WHITE, 16, this));
+        item.setClickable(true);
+        item.setFocusable(true);
+        item.setContentDescription(label + " tab" + (selected ? ", selected" : ""));
+
+        TextView iconView = Ui.text(this, icon, 22, selected ? Ui.PURPLE : Ui.INK);
+        iconView.setGravity(Gravity.CENTER);
+        iconView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        item.addView(iconView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+
+        TextView labelView = Ui.text(this, label, 11, selected ? Ui.PURPLE : Ui.INK);
+        labelView.setGravity(Gravity.CENTER);
+        labelView.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
+        item.addView(labelView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         item.setOnClickListener(view -> renderTab(label));
-        nav.addView(item, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
+        params.setMargins(Ui.dp(this, 3), Ui.dp(this, 2), Ui.dp(this, 3), Ui.dp(this, 2));
+        nav.addView(item, params);
     }
 
     private ScrollView scrollPage() {

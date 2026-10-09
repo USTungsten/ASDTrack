@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Elle's Journey v1.3 Preview</title>
+  <title>Elle's Journey v1.3.1 Interactive Preview</title>
   <style>
     :root { --ink:#17223b; --muted:#71809a; --canvas:#f4f6f9; --card:#fff; --violet:#6557c9; --violet2:#897be4; --lav:#eeebff; --mint:#e1f5ec; --green:#267759; --amber:#fff0d8; --amberink:#98611c; --line:#e8ebf1; --rose:#fff0f2; --roseink:#984762; --blue:#e7f2ff; --blueink:#356a9c; }
     * { box-sizing:border-box; }
@@ -14,8 +14,9 @@
     .badge { background:#17223b; color:#fff; border-radius:99px; padding:9px 15px; font-size:13px; font-weight:800; white-space:nowrap; }
     .principles { max-width:1200px; margin:0 auto 25px; display:flex; flex-wrap:wrap; gap:8px; }
     .principles span { background:#ffffffc9; border:1px solid #e8e9ef; border-radius:99px; padding:7px 11px; color:var(--muted); font-size:12px; font-weight:700; }
-    .phones { display:flex; gap:28px; max-width:1200px; margin:auto; justify-content:center; flex-wrap:wrap; }
-    .phone { width:360px; height:790px; border-radius:40px; border:9px solid #171b2b; overflow:hidden; background:var(--canvas); box-shadow:0 28px 60px #29304c2b; position:relative; }
+    .phones { display:flex; max-width:1200px; margin:auto; justify-content:center; }
+    .phone { display:none; width:360px; height:790px; border-radius:40px; border:9px solid #171b2b; overflow:hidden; background:var(--canvas); box-shadow:0 28px 60px #29304c2b; position:relative; }
+    .phone.active { display:block; }
     .status { height:28px; display:flex; justify-content:space-between; align-items:center; padding:7px 19px 0; font-size:11px; font-weight:750; }
     .content { padding:13px 17px 92px; height:calc(100% - 28px); overflow-y:auto; scrollbar-width:none; }
     .content::-webkit-scrollbar { display:none; }
@@ -31,7 +32,7 @@
     .icon.green { background:var(--mint); color:var(--green); }.icon.amber { background:var(--amber); color:var(--amberink); }.icon.blue{background:var(--blue);color:var(--blueink)}
     .card-head .copy { flex:1; }.card-head strong { display:block; font-size:15px; }.card-head span { color:var(--muted); font-size:11px; display:block; }.info { width:26px; height:26px; border-radius:99px; background:#f0f1f5; color:var(--muted); display:grid; place-items:center; font-size:12px; font-weight:900; }
     .action-row { display:flex; align-items:center; gap:10px; }.action-copy{flex:1}.action-copy strong{display:block;font-size:14px}.action-copy span{font-size:11px;color:var(--muted)}.arrow{color:var(--violet);font-size:22px;font-weight:700}
-    button { border:0; font:inherit; }.primary { width:100%; border-radius:14px; padding:13px; margin-top:11px; color:#fff; background:var(--violet); font-weight:800; font-size:13px; box-shadow:0 6px 15px #6557c928; }
+    button { border:0; font:inherit; cursor:pointer; }.primary { width:100%; border-radius:14px; padding:13px; margin-top:11px; color:#fff; background:var(--violet); font-weight:800; font-size:13px; box-shadow:0 6px 15px #6557c928; }
     .secondary { width:100%; border-radius:14px; padding:12px; margin-top:9px; color:var(--violet); background:var(--lav); font-weight:800; font-size:13px; }
     .section { color:var(--muted); font-weight:850; font-size:10px; letter-spacing:.1em; text-transform:uppercase; margin:16px 2px 7px; }
     .dose-row { display:flex; gap:7px; }.pill { flex:1; border-radius:13px; padding:9px; font-size:11px; font-weight:750; }.pill b{display:block;font-size:13px}.mint{background:var(--mint);color:var(--green)}.amber-bg{background:var(--amber);color:var(--amberink)}.lav{background:var(--lav);color:var(--violet)}.rose{background:var(--rose);color:var(--roseink)}
@@ -48,89 +49,195 @@
     .privacy { border-radius:13px; padding:10px; margin-top:9px; background:var(--mint); color:var(--green); font-size:10.5px; font-weight:700; }
     .report-list { margin:0; padding:0; list-style:none; }.report-list li{display:flex;gap:7px;font-size:10.5px;color:var(--muted);padding:4px 0}.report-list b{color:var(--green)}
     .mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.stat{border-radius:13px;padding:9px}.stat b{display:block;font-size:16px}.stat span{font-size:9.5px}
-    nav { position:absolute; left:0; right:0; bottom:0; height:75px; background:#fff; border-top:1px solid var(--line); display:flex; justify-content:space-around; align-items:center; }.nav { text-align:center; color:#98a1b1; font-size:9px; font-weight:750; }.nav b{display:block;font-size:18px;margin-bottom:3px}.nav.on{color:var(--violet)}
+    nav { position:absolute; left:0; right:0; bottom:0; height:75px; padding:5px; background:#fff; border-top:1px solid var(--line); display:flex; justify-content:space-around; align-items:center; }.nav { flex:1; height:61px; border-radius:15px; display:grid; place-items:center; align-content:center; text-align:center; color:var(--ink); font-size:9px; font-weight:750; cursor:pointer; user-select:none; }.nav b{display:block;font-size:18px;margin-bottom:3px}.nav.on{color:var(--violet);background:var(--lav)}
+    [data-go], .score, .mini-score, .choice, .stool, .check { cursor:pointer; }
+    [data-go]:active, button:active, .nav:active { transform:scale(.98); }
+    .toast { position:fixed; left:50%; bottom:24px; z-index:10; transform:translateX(-50%) translateY(20px); background:#17223b; color:#fff; border-radius:99px; padding:11px 18px; font-size:13px; font-weight:800; opacity:0; pointer-events:none; transition:.2s ease; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    @media (max-width:520px) { .page{padding:8px}.heading{align-items:flex-start;padding:5px 8px}.heading h1{font-size:21px}.heading p{font-size:12px}.badge{padding:7px 10px}.principles{padding:0 8px;margin-bottom:12px}.phone{width:min(100%,380px);height:calc(100vh - 165px);min-height:620px;border-width:6px;border-radius:32px} }
   </style>
 </head>
 <body><main class="page">
-  <div class="heading"><div><h1>Elle’s Journey — deeper tracking</h1><p>A quick daily check-in, a guided weekly communication review, and private video examples</p></div><div class="badge">v1.3 preview</div></div>
+  <div class="heading"><div><h1>Elle’s Journey — interactive preview</h1><p>Tap the menu and cards just like the Android app</p></div><div class="badge">live demo</div></div>
   <div class="principles"><span>Daily: under 2 minutes</span><span>Weekly: detailed communication</span><span>Schedule-aware reminders</span><span>3 = Elle’s usual baseline</span><span>Video stays on the phone</span><span>Observations, not proof of cause</span></div>
   <div class="phones">
 
-    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+    <section class="phone active" data-screen="today"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Elle’s Journey</div><h2>Good morning</h2><p class="sub">Tuesday, October 8</p></div><div class="avatar">🌿</div></div>
       <div class="hero"><div class="hero-line"><strong>Week 4 of 12</strong><span class="day">Day 24</span></div><div class="bar"><span></span></div><div class="day">Tuesday • school today • weekly sample after school</div></div>
       <div class="card"><div class="card-head"><div class="icon">Rx</div><div class="copy"><strong>Today’s doses</strong><span>Leucovorin • prescribed 10 mg twice daily</span></div></div><div class="dose-row"><div class="pill mint"><b>✓ First</b>10 mg • 8:05 AM</div><div class="pill amber-bg"><b>○ Second</b>10 mg • due tonight</div></div><button class="primary">Log second dose</button></div>
-      <div class="card"><div class="action-row"><div class="icon green">✓</div><div class="action-copy"><strong>Daily check-in</strong><span>Ratings, sleep, bowel + notes • 1–2 min</span></div><div class="arrow">›</div></div></div>
-      <div class="card"><div class="action-row"><div class="icon blue">💬</div><div class="action-copy"><strong>Weekly communication review</strong><span>Small talk, telling about her day + prompts</span></div><div class="arrow">›</div></div><div class="privacy">Due in 2 days • do this together when possible</div></div>
-      <div class="card"><div class="action-row"><div class="icon amber">✎</div><div class="action-copy"><strong>Add today’s school update</strong><span>Verbally reported by teacher • entered by Tamika</span></div><div class="arrow">›</div></div></div>
-      <div class="section">Next report</div><div class="card"><div class="action-row"><div class="icon">6</div><div class="action-copy"><strong>Week 6 doctor report</strong><span>Includes detailed communication and bowel summary</span></div><div class="arrow">›</div></div></div>
+      <div class="card" data-go="daily"><div class="action-row"><div class="icon green">✓</div><div class="action-copy"><strong>Daily check-in</strong><span id="daily-status">Ratings, sleep, bowel + notes • 1–2 min</span></div><div class="arrow">›</div></div></div>
+      <div class="card" data-go="weekly"><div class="action-row"><div class="icon blue">💬</div><div class="action-copy"><strong>Weekly communication review</strong><span>Small talk, telling about her day + prompts</span></div><div class="arrow">›</div></div><div class="privacy">Due in 2 days • do this together when possible</div></div>
+      <div class="card" data-go="care"><div class="action-row"><div class="icon amber">✎</div><div class="action-copy"><strong>Add today’s school update</strong><span>Verbally reported by teacher • entered by Tamika</span></div><div class="arrow">›</div></div></div>
+      <div class="section">Next report</div><div class="card" data-go="reports"><div class="action-row"><div class="icon">6</div><div class="action-copy"><strong>Week 6 doctor report</strong><span>Includes detailed communication and bowel summary</span></div><div class="arrow">›</div></div></div>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
-    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+    <section class="phone" data-screen="daily"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Week 4 • Day 24</div><h2>Daily check-in</h2><p class="sub">Rate today compared with Elle’s usual day</p></div><div class="avatar">✓</div></div>
       <div class="card"><div class="card-head"><div class="icon">💬</div><div class="copy"><strong>Communication</strong><span>Sharing needs, ideas or experiences</span></div><div class="info">?</div></div><div class="scale-note"><span>0 • much lower</span><span>3 • usual</span><span>5 • clearly higher</span></div><div class="scale"><div class="score">0</div><div class="score">1</div><div class="score">2</div><div class="score">3</div><div class="score on">4</div><div class="score">5</div></div><div class="help"><strong>What to notice:</strong> words, gestures, clearer meaning, and attempts to tell or ask—not whether speech was “perfect.”</div></div>
       <div class="card"><div class="metric"><div class="metric-top"><strong>Social connection</strong><span>seeks / responds / shares</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Focus & participation</strong><span>stays with activity</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score">3</i><i class="mini-score on">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Mood & regulation</strong><span>comfort and recovery</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Appetite</strong><span>amount vs usual</span><div class="info">?</div></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div></div>
       <div class="card"><div class="action-row"><div class="icon amber">☾</div><div class="action-copy"><strong>Sleep, bowel & comfort</strong><span>8 hours • bowel not logged • no concerns</span></div><div class="arrow">›</div></div></div>
-      <button class="primary">Continue to notes</button>
+      <button class="primary" data-go="notes">Continue to health, bowel & notes</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
-    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+    <section class="phone" data-screen="guide"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Help Tamika rate consistently</div><h2>What each rating means</h2><p class="sub">Use 3 for Elle’s own usual baseline</p></div><div class="avatar">?</div></div>
       <div class="card"><div class="guide"><div class="g-icon">💬</div><div><strong>Communication</strong><span>Attempts to share needs, thoughts or experiences using speech, AAC, gestures or other communication.</span></div></div><div class="guide"><div class="g-icon">♡</div><div><strong>Social connection</strong><span>Responds to others, seeks interaction, shares attention or enjoys a moment together.</span></div></div><div class="guide"><div class="g-icon">◎</div><div><strong>Focus & participation</strong><span>Joins an activity, follows along and stays engaged relative to her usual ability.</span></div></div><div class="guide"><div class="g-icon">≈</div><div><strong>Mood & regulation</strong><span>Comfort, flexibility and recovery after frustration—not “good” versus “bad” behavior.</span></div></div><div class="guide"><div class="g-icon">◒</div><div><strong>Appetite</strong><span>How much she ate compared with her usual amount; note illness or unfamiliar food.</span></div></div><div class="guide"><div class="g-icon">☾</div><div><strong>Sleep</strong><span>Hours plus unusual trouble falling asleep, waking, restlessness or daytime tiredness.</span></div></div><div class="guide"><div class="g-icon">●</div><div><strong>Bowel & tummy</strong><span>Frequency, closest stool consistency, pain/straining, urgency or accidents.</span></div></div></div>
       <div class="card"><div class="card-head"><div class="icon green">3</div><div class="copy"><strong>Keep the baseline personal</strong><span>Compare Elle with Elle—not other children</span></div></div><div class="help"><b>0</b> much lower • <b>1</b> lower • <b>2</b> slightly lower • <b>3</b> usual • <b>4</b> clearly higher • <b>5</b> exceptional for Elle</div></div>
       <div class="privacy">The goal is consistent family observation, not a diagnostic score.</div>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
-    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+    <section class="phone" data-screen="weekly"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Once each week</div><h2>Communication review</h2><p class="sub">Week 4 • think across the whole week</p></div><div class="avatar">💬</div></div>
       <div class="card"><div class="card-head"><div class="icon blue">↗</div><div class="copy"><strong>Elle’s conversation goals</strong><span>Rate independence and support needed</span></div><div class="info">?</div></div><div class="metric"><div class="metric-top"><strong>Starts communication herself</strong><span>requests, comments, shares</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Back-and-forth turns</strong><span>keeps exchange going</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score on">2</i><i class="mini-score">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Small talk & stays on topic</strong><span>social conversation</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score on">2</i><i class="mini-score">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Tells us about her day</strong><span>people, place, event, feeling</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Answers open questions</strong><span>more than yes / no</span></div><div class="mini-scale"><i class="mini-score">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score on">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div><div class="metric"><div class="metric-top"><strong>Asks a follow-up question</strong><span>reciprocal interest</span></div><div class="mini-scale"><i class="mini-score on">0</i><i class="mini-score">1</i><i class="mini-score">2</i><i class="mini-score">3</i><i class="mini-score">4</i><i class="mini-score">5</i></div></div></div>
       <div class="rubric"><b>“Tells us about her day” example</b><span>1 = single word/yes-no with full help</span><span>3 = 2–3 details with several prompts</span><span>5 = coherent short story independently</span></div>
-      <button class="primary">Continue to weekly example</button>
+      <button class="primary" data-go="sample">Continue to weekly example</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
-    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+    <section class="phone" data-screen="notes"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Daily health context</div><h2>Bowel & notes</h2><p class="sub">Quick to log; details only when needed</p></div><div class="avatar">●</div></div>
       <div class="card"><div class="card-head"><div class="icon amber">●</div><div class="copy"><strong>Bowel movements today</strong><span>Helps identify tummy or routine changes</span></div><div class="info">?</div></div><div class="section" style="margin-top:4px">How many?</div><div class="choice-row"><div class="choice">None</div><div class="choice on">1</div><div class="choice">2</div><div class="choice">3+</div></div><div class="section">Closest consistency</div><div class="stools"><div class="stool"><b>1</b>pellets</div><div class="stool"><b>2</b>lumpy</div><div class="stool"><b>3</b>cracked</div><div class="stool on"><b>4</b>smooth</div><div class="stool"><b>5</b>soft</div><div class="stool"><b>6</b>mushy</div><div class="stool"><b>7</b>liquid</div></div><div class="checkline"><div class="check">Pain / straining</div><div class="check">Urgency / accident</div></div></div>
       <div class="card"><div class="card-head"><div class="icon blue">✎</div><div class="copy"><strong>Moment note</strong><span>Structured details make reports more useful</span></div></div><div class="field"><strong>What happened?</strong>Elle told us about art class at dinner.</div><div class="field"><strong>Exact words or example</strong>“We painted a big purple flower.”</div><div class="field"><strong>Help or prompts given</strong>Asked “what did you make?” then waited.</div><div class="choice-row" style="margin-top:8px"><div class="choice on">Observed by Tamika</div><div class="choice">School</div><div class="choice">Therapy</div></div></div>
       <div class="card"><div class="action-row"><div class="icon amber">!</div><div class="action-copy"><strong>Anything that affected today?</strong><span>Illness, poor sleep, school event, therapy or dose change</span></div><div class="arrow">›</div></div></div>
-      <button class="primary">Save daily check-in</button>
+      <button class="primary" data-action="save-daily">Save daily check-in</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
-    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+    <section class="phone" data-screen="sample"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Same school day each week</div><h2>Weekly language sample</h2><p class="sub">A repeatable 2-minute observation</p></div><div class="avatar">▶</div></div>
       <div class="card"><div class="card-head"><div class="icon blue">1</div><div class="copy"><strong>Use these exact prompts</strong><span>Say each once, then quietly wait 10 seconds</span></div></div><div class="prompt"><small>Prompt 1 • personal story</small><strong>“Tell me about one thing that happened at school today.”</strong></div><div class="prompt"><small>Prompt 2 • sequence / expansion</small><strong>“What happened next?”</strong></div><div class="prompt"><small>Prompt 3 • feeling / meaning</small><strong>“How did you feel about it?”</strong></div><div class="prompt"><small>Prompt 4 • reciprocal social bid</small><strong>“Something happened in my day too.”</strong><span>Pause to see whether Elle comments or asks about it.</span></div></div>
       <div class="card"><div class="card-head"><div class="icon green">✓</div><div class="copy"><strong>Keep measurement separate</strong><span>Practice freely after this short sample</span></div></div><div class="guide"><div class="g-icon">10</div><div><strong>Wait without filling the silence</strong><span>Use the same wait time each week.</span></div></div><div class="guide"><div class="g-icon">○</div><div><strong>Do not correct or model during the sample</strong><span>If extra help was needed, record exactly what was given.</span></div></div><div class="guide"><div class="g-icon">■</div><div><strong>Stop if she is distressed or does not want to continue</strong><span>Log “not completed” rather than pushing through.</span></div></div><button class="primary">● Record sample locally</button></div>
       <div class="card"><div class="section" style="margin-top:0">What happened?</div><div class="choice-row"><div class="choice on">3 details</div><div class="choice">4 turns</div><div class="choice">Feeling word</div><div class="choice">Follow-up question</div></div><div class="field"><strong>Extra support used</strong>None • exact prompts and wait time only</div></div>
       <div class="privacy">🔒 Video stays on this phone. GitHub receives only the date, completion, prompt support and observation counts.</div>
-      <button class="primary">Save weekly sample</button>
+      <button class="primary" data-action="save-weekly">Save weekly sample</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
-    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+    <section class="phone" data-screen="care"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Care-team evidence</div><h2>School & therapy update</h2><p class="sub">Keep the source attached to every note</p></div><div class="avatar">✎</div></div>
       <div class="card"><div class="section" style="margin-top:0">Update source</div><div class="choice-row"><div class="choice on">Teacher</div><div class="choice">Theraplay • Speech</div><div class="choice">Theraplay • OT</div><div class="choice">Speech + OT</div></div><div class="field"><strong>Person / provider</strong>Ms. Carter • verbally reported at pickup</div><button class="primary">🎙 Dictate school update</button><div class="field"><strong>Editable transcript</strong>Elle independently told a classmate about her art project and stayed in the conversation for three turns.</div><div class="help"><strong>Review before saving.</strong> The transcript—not the microphone recording—is used for search, tags, sync and reports.</div></div>
       <div class="card"><div class="card-head"><div class="icon blue">#</div><div class="copy"><strong>Tag what was reported</strong><span>Tags help summarize notes without changing the teacher’s words</span></div></div><div class="choice-row"><div class="choice on">Spontaneous communication</div><div class="choice on">Peer interaction</div><div class="choice">Told about her day</div><div class="choice">Followed directions</div><div class="choice">Participation</div><div class="choice">Regulation / sensory</div><div class="choice">Independence / self-care</div><div class="choice">Concern</div></div></div>
       <div class="card"><div class="card-head"><div class="icon amber">◎</div><div class="copy"><strong>For speech, OT or therapy</strong><span>Record the session goal and support—not just “better”</span></div></div><div class="field"><strong>Goal or skill practiced</strong>Back-and-forth conversation during a shared activity.</div><div class="field"><strong>Support and progress</strong>Visual cue plus one verbal prompt; five exchanges.</div><div class="field"><strong>Home recommendation</strong>Practice one open question at dinner.</div></div>
       <div class="privacy">Teacher and clinician notes stay labeled separately from parent ratings. On-device transcription is preferred when the phone supports it.</div>
-      <button class="primary">Save care-team update</button>
+      <button class="primary" data-action="save-care">Save care-team update</button>
     </div><nav><div class="nav on"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
-    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+    <section class="phone" data-screen="settings"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Set once • change anytime</div><h2>Care schedule</h2><p class="sub">The Today screen follows Elle’s actual week</p></div><div class="avatar">▦</div></div>
       <div class="card"><div class="card-head"><div class="icon blue">M</div><div class="copy"><strong>Monday</strong><span>School</span></div><div class="pill mint" style="flex:0 0 auto">Teacher update</div></div><div class="card-head"><div class="icon blue">T</div><div class="copy"><strong>Tuesday</strong><span>School</span></div><div class="pill lav" style="flex:0 0 auto">Weekly sample</div></div><div class="card-head"><div class="icon amber">W</div><div class="copy"><strong>Wednesday</strong><span>Theraplay • Speech + OT</span></div><div class="pill amber-bg" style="flex:0 0 auto">Session note</div></div><div class="card-head"><div class="icon green">T</div><div class="copy"><strong>Thursday</strong><span>Home / no scheduled session</span></div><div class="pill mint" style="flex:0 0 auto">No reminder</div></div><div class="card-head"><div class="icon green">F</div><div class="copy"><strong>Friday</strong><span>Home / no scheduled session</span></div><div class="pill mint" style="flex:0 0 auto">No reminder</div></div></div>
       <div class="card"><div class="card-head"><div class="icon">⏱</div><div class="copy"><strong>Suggested reminders</strong><span>Edit times to match pickup and appointments</span></div></div><div class="field"><strong>Monday school update</strong>4:30 PM</div><div class="field"><strong>Tuesday school update + language sample</strong>4:30 PM</div><div class="field"><strong>Wednesday Theraplay Speech/OT note</strong>After session</div></div>
       <div class="privacy">Thursday and Friday still show the normal daily check-in, but no school or therapy reminder.</div>
-      <button class="primary">Save care schedule</button>
+      <button class="primary" data-action="save-settings">Save care schedule</button>
     </div><nav><div class="nav"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav on"><b>⚙</b>Settings</div></nav></section>
 
-    <section class="phone"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+    <section class="phone" data-screen="reports"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
       <div class="top"><div><div class="eyebrow">Week 6 clinical summary</div><h2>Doctor report</h2><p class="sub">Observations through day 42</p></div><div class="avatar">▥</div></div>
       <div class="card"><div class="card-head"><div class="icon">Rx</div><div class="copy"><strong>Medication & completion</strong><span>Prescribed schedule plus actual doses logged</span></div></div><div class="mini-stats"><div class="stat mint"><b>81 / 84</b><span>Doses recorded</span></div><div class="stat lav"><b>40 / 42</b><span>Daily check-ins</span></div></div></div>
       <div class="card"><div class="card-head"><div class="icon blue">💬</div><div class="copy"><strong>Communication detail</strong><span>Daily trend + six weekly reviews</span></div></div><div class="metric"><div class="metric-top"><strong>Tells about her day</strong><span>2.0 → 3.5</span></div></div><div class="metric"><div class="metric-top"><strong>Back-and-forth turns</strong><span>2.3 → 3.1</span></div></div><div class="metric"><div class="metric-top"><strong>Small talk / topic</strong><span>1.8 → 2.7</span></div></div><div class="help">Parent-defined 0–5 observation ratings. These are not a validated clinical scale.</div></div>
       <div class="card"><div class="card-head"><div class="icon amber">●</div><div class="copy"><strong>Tolerability & context</strong><span>Sleep, appetite, bowel and reported concerns</span></div></div><div class="mini-stats"><div class="stat amber-bg"><b>3 days</b><span>Tummy concerns</span></div><div class="stat rose"><b>1 day</b><span>Loose stool</span></div></div></div>
       <div class="card"><ul class="report-list"><li><b>✓</b> Structured moment notes and exact examples</li><li><b>✓</b> Weekly prompt results and support used</li><li><b>✓</b> Teacher, speech and OT notes by source</li><li><b>✓</b> Weekly video index; clips not embedded</li><li><b>✓</b> Illness, sleep, school and therapy context</li></ul></div>
-      <button class="primary">Preview and share PDF</button>
+      <button class="primary" data-action="share-report">Preview and share PDF</button>
     </div><nav><div class="nav"><b>⌂</b>Today</div><div class="nav"><b>▦</b>History</div><div class="nav on"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
 
+    <section class="phone" data-screen="history"><div class="status"><span>9:41</span><span>● ◔ 100%</span></div><div class="content">
+      <div class="top"><div><div class="eyebrow">Saved observations</div><h2>History</h2><p class="sub">Daily, weekly and care-team entries</p></div><div class="avatar">▦</div></div>
+      <div class="card" id="history-empty"><div class="card-head"><div class="icon">○</div><div class="copy"><strong>No observations yet</strong><span>Save a daily check-in to see it here</span></div></div><button class="primary" data-go="daily">Start Day 1 check-in</button></div>
+      <div id="history-entry" hidden>
+        <div class="section">Daily check-ins</div>
+        <div class="card" data-go="daily"><div class="card-head"><div class="icon green">✓</div><div class="copy"><strong>October 8 • Day 1</strong><span>Overall response 3.5/5 • Sleep 8 hours</span></div><div class="arrow">›</div></div><div class="pill mint"><b>✓ Check-in saved</b>2 doses recorded • tells about her day 3/5</div><div class="field"><strong>Communication example</strong>“We painted a big purple flower.”</div></div>
+      </div>
+    </div><nav><div class="nav"><b>⌂</b>Today</div><div class="nav on"><b>▦</b>History</div><div class="nav"><b>▥</b>Reports</div><div class="nav"><b>⚙</b>Settings</div></nav></section>
+
   </div>
-</main></body>
+</main>
+<div class="toast" role="status" aria-live="polite"></div>
+<script>
+  const screens = Object.fromEntries([...document.querySelectorAll('[data-screen]')]
+    .map(screen => [screen.dataset.screen, screen]));
+  const toast = document.querySelector('.toast');
+  let toastTimer;
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  function showScreen(name) {
+    const next = screens[name] || screens.today;
+    Object.values(screens).forEach(screen => screen.classList.toggle('active', screen === next));
+    next.querySelector('.content').scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateSavedState() {
+    const saved = localStorage.getItem('ellesJourneyPreviewDay1') === 'saved';
+    document.querySelector('#history-empty').hidden = saved;
+    document.querySelector('#history-entry').hidden = !saved;
+    if (saved) document.querySelector('#daily-status').textContent = '✓ Today’s check-in saved • tap to review';
+  }
+
+  document.addEventListener('click', event => {
+    const navItem = event.target.closest('.nav');
+    if (navItem) {
+      const label = navItem.textContent;
+      if (label.includes('History')) showScreen('history');
+      else if (label.includes('Reports')) showScreen('reports');
+      else if (label.includes('Settings')) showScreen('settings');
+      else showScreen('today');
+      return;
+    }
+
+    const destination = event.target.closest('[data-go]');
+    if (destination) {
+      showScreen(destination.dataset.go);
+      return;
+    }
+
+    const score = event.target.closest('.score, .mini-score');
+    if (score) {
+      score.parentElement.querySelectorAll('.on').forEach(item => item.classList.remove('on'));
+      score.classList.add('on');
+      return;
+    }
+
+    const option = event.target.closest('.choice, .stool');
+    if (option) {
+      option.parentElement.querySelectorAll('.on').forEach(item => item.classList.remove('on'));
+      option.classList.add('on');
+      return;
+    }
+
+    const check = event.target.closest('.check');
+    if (check) {
+      check.classList.toggle('on');
+      return;
+    }
+
+    if (event.target.closest('.info')) {
+      showScreen('guide');
+      return;
+    }
+
+    const action = event.target.closest('[data-action]')?.dataset.action;
+    if (action === 'save-daily') {
+      localStorage.setItem('ellesJourneyPreviewDay1', 'saved');
+      updateSavedState();
+      showToast('Day 1 check-in saved');
+      showScreen('today');
+    } else if (action === 'save-weekly') {
+      showToast('Weekly sample saved');
+      showScreen('today');
+    } else if (action === 'save-care') {
+      showToast('School update saved');
+      showScreen('today');
+    } else if (action === 'save-settings') {
+      showToast('Care schedule saved');
+    } else if (action === 'share-report') {
+      showToast('The Android app opens a shareable PDF here');
+    }
+  });
+
+  updateSavedState();
+</script>
+</body>
 </html>
