@@ -2,4 +2,5 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="reports" path="reports/" />
     <files-path name="backups" path="backups/" />
+    <files-path name="videos" path="videos/" />
 </paths>

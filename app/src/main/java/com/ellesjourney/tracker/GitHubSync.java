@@ -31,7 +31,8 @@ final class GitHubSync {
             String encrypted = CryptoBox.encrypt(store.exportJson(), config.passphrase);
             int response = put(config, encrypted, remote.sha);
             if (response == 200 || response == 201) {
-                return new Result(store.getEntries().size(), remote.sha == null);
+                return new Result(store.getEntries().size() + store.getCareUpdates().size()
+                        + store.getWeeklySamples().size(), remote.sha == null);
             }
             if (response != 409) throw new Exception("GitHub rejected the update (HTTP " + response + ")");
         }
@@ -94,11 +95,11 @@ final class GitHubSync {
     }
 
     static final class Result {
-        final int entries;
+        final int records;
         final boolean created;
 
-        Result(int entries, boolean created) {
-            this.entries = entries;
+        Result(int records, boolean created) {
+            this.records = records;
             this.created = created;
         }
     }
